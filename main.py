@@ -23,8 +23,8 @@ class BillSplitting:
         self.master = tk.Tk()
 
         # Height and width
-        screen_height = self.master.winfo_screenheight()
-        self.WIDTH_MASTER, self.HEIGHT_MASTER = int(screen_height * 0.4), int(screen_height * 0.4)
+        self.screen_height = self.master.winfo_screenheight()
+        self.WIDTH_MASTER, self.HEIGHT_MASTER = int(self.screen_height * 0.4), int(self.screen_height * 0.4)
         
         # Main Window customization 
         self.master.title("Partage des dépenses")
@@ -33,21 +33,28 @@ class BillSplitting:
         self.master.maxsize(self.WIDTH_MASTER, self.HEIGHT_MASTER)
         self.master.config(bg=self.GREEN) 
 
+        # Create master frame
+        self.frame_master = tk.Frame(self.master, width=(self.WIDTH_MASTER*0.94), height=(self.HEIGHT_MASTER*0.94),
+                                     bg=self.GREEN)
+        self.frame_master.place(relx=0.03, rely=0.03)
+
         # Create group button
-        self.create_group_button = tk.Button(self.master, text="Créer un nouveau groupe", 
-                                             font=("Helvetica", int(screen_height/80), "bold"), command=self.create_new_group)
-        self.create_group_button.place(relx=0.02, rely=0.02, relheight=0.08)
+        self.create_group_button = tk.Button(self.frame_master, text="Créer un nouveau groupe", 
+                                             font=("Helvetica", int(self.screen_height/70), "bold"), command=self.create_new_group)
+        #self.create_group_button.place(relx=0, rely=0, relheight=0.08)
+        self.create_group_button.grid(row=0, column=0, columnspan=2, sticky="w")
 
         self.master.mainloop()
 
     def create_new_group(self):
         """ New group creation"""
         
-        self.new_group_label = tk.Label(self.master, text="Nom du nouveau groupe :", bg=self.GREEN)
-        self.new_group_label.place(relx=0.02, rely=0.11, relheight=0.05, relwidth=0.48)
-        
-        self.new_group_entry = tk.Entry(self.master)
-        self.new_group_entry.place(relx=0.55, rely=0.11)
+        self.new_group_label = tk.Label(self.frame_master, text="Nom du nouveau groupe :", bg=self.GREEN,
+                                        font=("Helvetica", int(self.screen_height/95)))
+        self.new_group_label.grid(row=1, column=0, sticky="w", padx=5, pady=5)
+
+        self.new_group_entry = tk.Entry(self.frame_master)
+        self.new_group_entry.grid(row=1, column=1, padx=5, sticky="e")
 
 
 if __name__ == "__main__":
