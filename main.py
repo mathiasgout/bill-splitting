@@ -1,4 +1,5 @@
 import os
+import shutil
 import tkinter as tk
 from tkinter import ttk
 
@@ -23,6 +24,7 @@ class BillSplitting:
     def __init__(self):
 
         self.master = tk.Tk()
+        self.master.bind('<Escape>', self.MASTER_quit_func)
 
         # Height and width
         self.screen_height = self.master.winfo_screenheight()
@@ -37,110 +39,169 @@ class BillSplitting:
 
         # Create master frame
         self.frame_master = tk.Frame(self.master, width=(self.WIDTH_MASTER*0.94), height=(self.HEIGHT_MASTER*0.94), bg=self.GREEN)
-        self.reg_frame_master = self.frame_master.register(self._callback_create_group)
         self.frame_master.place(relx=0.03, rely=0.03)
 
-        # Create group part
-        self.create_group_button = tk.Button(self.frame_master, text="Créer un nouveau groupe", 
-                                             font=("Helvetica", int(self.screen_height/70), "bold"), command=self.group_creation)
-        self.create_group_button.grid(row=0, column=0, columnspan=2, sticky="w")
+        # Create group part (CRTG)
+        self.CRTG_main_button = tk.Button(self.frame_master, text="Créer un nouveau groupe", 
+                                             font=("Helvetica", int(self.screen_height/70), "bold"), command=self.CRTG_main_button_func)
+        self.CRTG_main_button.grid(row=0, column=0, columnspan=2, sticky="w")
 
-        self.create_group_label = tk.Label(self.frame_master, text="Nom du nouveau groupe :", bg=self.GREEN,
+        self.CRTG_label = tk.Label(self.frame_master, text="Nom du nouveau groupe :", bg=self.GREEN,
                                         font=("Helvetica", int(self.screen_height/95)))
 
-        self.create_group_entry = tk.Entry(self.frame_master, validate="key", validatecommand=(self.reg_frame_master, '%P'))
-        self.create_group_entry.bind('<Return>', self._save_create_group)
-        self.create_group_entry.bind('<Escape>', self._quit_create_group)
+        self.CRTG_reg_frame_master = self.frame_master.register(self.CRTG_callback_func)
+        self.CRTG_entry = tk.Entry(self.frame_master, validate="key", validatecommand=(self.CRTG_reg_frame_master, '%P'))
+        self.CRTG_entry.bind('<Return>', self.CRTG_secondary_button_func)
+        #self.CRTG_entry.bind('<Escape>', self.CRTG_quit_func)
 
-        self.create_group_already_exists_label = tk.Label(self.frame_master, text="Ce nom de groupe existe déjà",
+        self.CRTG_secondary_button = tk.Button(self.frame_master, text="CRÉER", command=self.CRTG_secondary_button_func)
+
+        self.CRTG_already_exists_label = tk.Label(self.frame_master, text="Ce groupe existe déjà !",
                                                   font=("Helvetica", int(self.screen_height/100)), fg="red", bg=self.GREEN)
         
-        self.create_group_saved_label = tk.Label(self.frame_master, text="Groupe créé !", font=("Helvetica", int(self.screen_height/90)),
+        self.CRTG_saved_label = tk.Label(self.frame_master, text="Groupe créé !", font=("Helvetica", int(self.screen_height/90)),
                                           fg="green", bg=self.GREEN)
 
-        # Remove group part
-        self.remove_group_button = tk.Button(self.frame_master, text="Supprimer un groupe", 
-                                             font=("Helvetica", int(self.screen_height/70), "bold"), command=self.group_remove)
-        self.remove_group_button.grid(row=3, column=0, columnspan=2, pady=5, sticky="w")
+        # Remove group part (RMG)
+        self.RMG_main_button = tk.Button(self.frame_master, text="Supprimer un groupe", 
+                                             font=("Helvetica", int(self.screen_height/70), "bold"), command=self.RMG_main_button_func)
+        self.RMG_main_button.grid(row=3, column=0, columnspan=2, pady=5, sticky="w")
 
-        self.remove_group_label = tk.Label(self.frame_master, text="Liste des groupes :", bg=self.GREEN,
+        self.RMG_label = tk.Label(self.frame_master, text="Liste des groupes :", bg=self.GREEN,
                                            font=("Helvetica", int(self.screen_height/95)))
 
-        self.remove_group_combobox = ttk.Combobox(self.frame_master)
+        self.RMG_combobox = ttk.Combobox(self.frame_master)
+        self.RMG_combobox.bind('<Return>', self.RMG_secondary_button_func)
+        #self.RMG_combobox.bind('<Escape>', self.RMG_quit_func)
 
-        self.remove_group_combobox_button = tk.Button(self.frame_master, text="SUPPRIMER")
+        self.RMG_secondary_button = tk.Button(self.frame_master, text="SUPPRIMER", command=self.RMG_secondary_button_func)
+        
+        self.RMG_deteted_label = tk.Label(self.frame_master, text="Groupe supprimé !",
+                                             font=("Helvetica", int(self.screen_height/100)), fg="red", bg=self.GREEN)
 
         # Display
         self.master.mainloop()
+    
+    def MASTER_quit_func(self, event):
+        """ Reset all widgets """
 
-    def group_creation(self, event=None):
-        """ (Display create_group_label + create_group_entry) or save group """
+        # make clickable button
+        self.CRTG_main_button.config(state="normal")
+        self.RMG_main_button.config(state="normal")
+
+        # make invisible widgets
+        self.CRTG_label.grid_forget()
+        self.CRTG_entry.grid_forget()
+        self.CRTG_secondary_button.grid_forget()
+
+        self.RMG_label.grid_forget()
+        self.RMG_combobox.grid_forget()
+        self.RMG_secondary_button.grid_forget()
+        self.RMG_deteted_label.grid_forget()     
+        self.CRTG_already_exists_label.grid_forget()
+
+
+    def CRTG_main_button_func(self, event=None):
+        """ Display label + entry for saving group """
         
-        # Close group deletion part
-        self._quit_remove_group(event)
+        # make disable main creation button
+        self.CRTG_main_button.config(state="disable")
 
-        # make group_saved_label invisible
-        self.create_group_saved_label.grid_forget()
+        # Close group remove part
+        self.RMG_quit_func(event)
 
-        # if create_group_entry is displayed
-        if self.create_group_entry.winfo_ismapped():
-            self._save_create_group(event)
+        # make group saved label invisible
+        self.CRTG_saved_label.grid_forget()
 
-        else:
-            self.create_group_label.grid(row=1, column=0, sticky="w", padx=5, pady=5)
-            self.create_group_entry.grid(row=1, column=1, padx=5, sticky="w")
-
-    def _callback_create_group(self, input):
-        """ Callback function for create_group_entry """
+        # display label + entry button + secondary creation button
+        self.CRTG_label.grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.CRTG_entry.grid(row=1, column=1, padx=5, sticky="w")
+        self.CRTG_secondary_button.grid(row=2, column=0, padx=5, sticky="w")
+    
+    def CRTG_callback_func(self, input):
+        """ Callback function for CRTG_entry """
         
         if " " in input or "é" in input:
             return False
+        
+        if len(input) > 15:
+            return False
+
         else:
-            self.create_group_already_exists_label.grid_forget()
+            self.CRTG_already_exists_label.grid_forget()
             return True
     
-    def _save_create_group(self, event):
+    def CRTG_secondary_button_func(self, event=None):
         """ Save group """
 
         # Check if group already exist
-        new_group = self.create_group_entry.get()
+        new_group = self.CRTG_entry.get()
         new_group_path = os.path.join(self.GROUPS_PATH, new_group)
         if os.path.exists(new_group_path):
-            self.create_group_already_exists_label.grid(row=2, column=1, sticky="w")
+            self.CRTG_already_exists_label.grid(row=2, column=1, sticky="w", padx=5)
 
         # Create new group
         else:
             os.mkdir(new_group_path)
-            self.create_group_saved_label.grid(row=1, column=0, pady=5)
-            self._quit_create_group(event)
+            self.CRTG_saved_label.grid(row=1, column=0, pady=5)
+            self.RMG_main_button.config(state="normal")
+            self.CRTG_quit_func(event)
 
-    def _quit_create_group(self, event):
+    def CRTG_quit_func(self, event):
         """ Quit group creation part """
         
-        # Make create_group_already_exists_label, create_group_saved_label and create_group_entry invisible + forget create_group_entry text
-        self.create_group_entry.delete(first=0, last="end")
-        self.create_group_already_exists_label.grid_forget()
-        self.create_group_label.grid_forget()
-        self.create_group_entry.grid_forget()
+        # make clickable main create button
+        self.CRTG_main_button.config(state="normal")
+
+        # Make invisible create group label + create group entry + create group "already exist" label + secondary create button
+        self.CRTG_entry.delete(first=0, last="end")
+        self.CRTG_already_exists_label.grid_forget()
+        self.CRTG_label.grid_forget()
+        self.CRTG_entry.grid_forget()
+        self.CRTG_secondary_button.grid_forget()
     
-    def group_remove(self, event=None):
-        """ Display remove_group_label + """
+    def RMG_main_button_func(self, event=None):
+        """ Display label + entry for removing group """
+        
+        # make disable main remove button
+        self.RMG_main_button.config(state="disable")
+
+        # make group saved label invisible
+        self.CRTG_saved_label.grid_forget()
 
         # Close group creation part
-        self._quit_create_group(event)
+        self.CRTG_quit_func(event)
 
-        self.remove_group_label.grid(row=4, column=0, sticky="w", padx=5)
-        self.remove_group_combobox.config(value=[1,2,3])
-        self.remove_group_combobox.grid(row=4, column=1, sticky="w", padx=5)
-        self.remove_group_combobox_button.grid(row=5, column=0)
+        self.RMG_label.grid(row=4, column=0, sticky="w", padx=5)
+        self.RMG_combobox.config(value=sorted(os.listdir(self.GROUPS_PATH)), state="readonly")
+        self.RMG_combobox.grid(row=4, column=1, sticky="w", padx=5)
+        self.RMG_secondary_button.grid(row=5, column=0, sticky="w", padx=5)
+    
+    def RMG_secondary_button_func(self, event=None):
+        """ Remove a group """
 
+        # if combobox selected a group name
+        if self.RMG_combobox.get():
+            shutil.rmtree(os.path.join(self.GROUPS_PATH, self.RMG_combobox.get()))
+            self.RMG_combobox.config(value=sorted(os.listdir(self.GROUPS_PATH)), state="readonly")
+            self.RMG_combobox.set("")
+            self.RMG_deteted_label.grid(row=5, column=1, sticky="w", padx=5)
 
-    def _quit_remove_group(self, event):
+        # If no group disable secondary remove button 
+        if len(os.listdir(self.GROUPS_PATH)) == 0:
+            self.RMG_secondary_button.config(state="disable")
+
+    def RMG_quit_func(self, event):
         """ Quit group deletion """
 
-        self.remove_group_label.grid_forget()
-        self.remove_group_combobox.grid_forget()
-        self.remove_group_combobox_button.grid_forget()
+        # make clickable main create button
+        self.RMG_main_button.config(state="normal")
+
+        self.RMG_label.grid_forget()
+        self.RMG_combobox.grid_forget()
+        self.RMG_secondary_button.grid_forget()
+        self.RMG_deteted_label.grid_forget()
+        self.RMG_secondary_button.config(state="normal")
 
 
 if __name__ == "__main__":
