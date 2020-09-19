@@ -262,7 +262,6 @@ class GroupWindow:
     # Colors
     GREEN = "#D8EEED"
 
-
     # path folders
     MAIN_PATH = os.path.dirname(os.path.realpath(__file__))
     SAVED_FILES_PATH = os.path.join(MAIN_PATH, "saved_files")
@@ -272,9 +271,11 @@ class GroupWindow:
         
         self.master = tk.Tk()
         
-        # Get group name
+        # Get group name and path
         with open(os.path.join(self.SAVED_FILES_PATH, "group_selected.txt"), "r") as f:
             self.GROUP_NAME = f.readline()
+        
+        self.GROUP_PATH = os.path.join(self.GROUPS_PATH, self.GROUP_NAME)
 
         # Height and width
         self.screen_height = self.master.winfo_screenheight()
@@ -287,12 +288,44 @@ class GroupWindow:
         self.master.maxsize(self.WIDTH, self.HEIGHT)
         self.master.config(bg="white")
 
+        # Menu bar
+        self.menu_bar = tk.Menu(self.master, bg="white")
+        
+        self.file_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
+        self.file_menu.add_command(label="Ouvrir un nouveau groupe", command=self.MENU_file_open_new_group_func)
+        self.menu_bar.add_cascade(label="Fichier", menu=self.file_menu)
+        
+        self.edit_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
+        self.edit_menu.add_command(label="Ajouter un membre")
+        self.edit_menu.add_command(label="Supprimer un membre")
+        self.menu_bar.add_cascade(label="Éditer", menu=self.edit_menu)
+        self.master.config(menu=self.menu_bar)
+
         # Left frame
         self.left_frame = tk.Frame(self.master, width=self.WIDTH/4, height=self.HEIGHT, highlightbackground="black",
-                                   highlightthickness=2, bg=self.GREEN)
+                                   highlightthickness=1, bg=self.GREEN)
         self.left_frame.grid(row=0, column=0)
 
+        # Right frame
+        self.right_frame = tk.Frame(self.master, width=3*self.WIDTH/4, height=self.HEIGHT, highlightbackground="black",
+                                    highlightthickness=1, bg="white")
+        self.right_frame.grid(row=0, column=1)
+
         self.master.mainloop()
+
+    def MENU_file_open_new_group_func(self):
+        """ Close this window and open menu window """
+        
+        # Quit group window
+        self.master.destroy()
+        
+        # Open menu window
+        launch_menu_window()
+        
+def launch_menu_window():
+    """ A function which launch MenuWindow class """
+
+    MenuWindow()
 
 
 if __name__ == "__main__":
