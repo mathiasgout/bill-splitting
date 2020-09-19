@@ -96,6 +96,10 @@ class MenuWindow:
 
         self.GS_secondary_button = tk.Button(self.frame_master, text="SELECTIONNER", command=self.GS_secondary_button_func)
         
+        # Delete group selected
+        with open(os.path.join(self.SAVED_FILES_PATH, "group_selected.txt"), "w") as f:
+            pass       
+
         # Display
         self.master.mainloop()
     
