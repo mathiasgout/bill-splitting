@@ -1,11 +1,13 @@
+""" Bill-Splitting App """
+
 import os
 import shutil
 import tkinter as tk
 from tkinter import ttk
 
 
-class BillSplitting:
-    """ Bill-splitting """
+class MenuWindow:
+    """ Menu Window """
     
     # Colors
     GREEN = "#D8EEED"
@@ -24,6 +26,8 @@ class BillSplitting:
     def __init__(self):
 
         self.master = tk.Tk()
+
+        # Escape key bind
         self.master.bind('<Escape>', self.MASTER_quit_func)
 
         # Height and width
@@ -44,7 +48,7 @@ class BillSplitting:
         # Create group part (CRTG)
         self.CRTG_main_button = tk.Button(self.frame_master, text="Créer un nouveau groupe", 
                                              font=("Helvetica", int(self.screen_height/70), "bold"), command=self.CRTG_main_button_func)
-        self.CRTG_main_button.grid(row=0, column=0, columnspan=2, sticky="w")
+        self.CRTG_main_button.grid(row=0, column=0, columnspan=2, sticky="w", pady=5)
 
         self.CRTG_label = tk.Label(self.frame_master, text="Nom du nouveau groupe :", bg=self.GREEN,
                                         font=("Helvetica", int(self.screen_height/95)))
@@ -52,7 +56,6 @@ class BillSplitting:
         self.CRTG_reg_frame_master = self.frame_master.register(self.CRTG_callback_func)
         self.CRTG_entry = tk.Entry(self.frame_master, validate="key", validatecommand=(self.CRTG_reg_frame_master, '%P'))
         self.CRTG_entry.bind('<Return>', self.CRTG_secondary_button_func)
-        #self.CRTG_entry.bind('<Escape>', self.CRTG_quit_func)
 
         self.CRTG_secondary_button = tk.Button(self.frame_master, text="CRÉER", command=self.CRTG_secondary_button_func)
 
@@ -65,58 +68,79 @@ class BillSplitting:
         # Remove group part (RMG)
         self.RMG_main_button = tk.Button(self.frame_master, text="Supprimer un groupe", 
                                              font=("Helvetica", int(self.screen_height/70), "bold"), command=self.RMG_main_button_func)
-        self.RMG_main_button.grid(row=3, column=0, columnspan=2, pady=5, sticky="w")
+        self.RMG_main_button.grid(row=3, column=0, columnspan=2, sticky="w", pady=5)
 
         self.RMG_label = tk.Label(self.frame_master, text="Liste des groupes :", bg=self.GREEN,
                                            font=("Helvetica", int(self.screen_height/95)))
 
         self.RMG_combobox = ttk.Combobox(self.frame_master)
         self.RMG_combobox.bind('<Return>', self.RMG_secondary_button_func)
-        #self.RMG_combobox.bind('<Escape>', self.RMG_quit_func)
 
         self.RMG_secondary_button = tk.Button(self.frame_master, text="SUPPRIMER", command=self.RMG_secondary_button_func)
         
         self.RMG_deteted_label = tk.Label(self.frame_master, text="Groupe supprimé !",
                                              font=("Helvetica", int(self.screen_height/100)), fg="red", bg=self.GREEN)
 
+        # Group selection part (GS)
+        self.GS_main_button = tk.Button(self.frame_master, text="Sélectionner un groupe", 
+                                        font=("Helvetica", int(self.screen_height/70), "bold"), command=self.GS_main_button_func)
+        self.GS_main_button.grid(row=6, column=0, columnspan=2, sticky="w", pady=5)
+
+        self.GS_label = tk.Label(self.frame_master, text="Liste des groupes :", bg=self.GREEN,
+                                           font=("Helvetica", int(self.screen_height/95)))
+
+        self.GS_combobox = ttk.Combobox(self.frame_master)
+        self.GS_combobox.bind('<Return>', self.GS_secondary_button_func)
+
+        self.GS_secondary_button = tk.Button(self.frame_master, text="SELECTIONNER", command=self.GS_secondary_button_func)
+        
         # Display
         self.master.mainloop()
     
-    def MASTER_quit_func(self, event):
+    def MASTER_quit_func(self, event=None):
         """ Reset all widgets """
-
+        
         # make clickable button
         self.CRTG_main_button.config(state="normal")
         self.RMG_main_button.config(state="normal")
+        self.GS_main_button.config(state="normal")
 
         # make invisible widgets
         self.CRTG_label.grid_forget()
         self.CRTG_entry.grid_forget()
         self.CRTG_secondary_button.grid_forget()
+        self.CRTG_already_exists_label.grid_forget()
 
         self.RMG_label.grid_forget()
         self.RMG_combobox.grid_forget()
         self.RMG_secondary_button.grid_forget()
-        self.RMG_deteted_label.grid_forget()     
-        self.CRTG_already_exists_label.grid_forget()
+        self.RMG_deteted_label.grid_forget()
 
+        self.GS_label.grid_forget()
+        self.GS_combobox.grid_forget()
+        self.GS_secondary_button.grid_forget()
+
+        # special actions
+        self.CRTG_entry.delete(first=0, last="end")
+        self.RMG_combobox.set("")
+        self.GS_combobox.set("")
 
     def CRTG_main_button_func(self, event=None):
         """ Display label + entry for saving group """
         
-        # make disable main creation button
-        self.CRTG_main_button.config(state="disable")
-
         # Close group remove part
-        self.RMG_quit_func(event)
+        self.MASTER_quit_func(event)
 
+        # disable main creation button
+        self.CRTG_main_button.config(state="disable")
+        
         # make group saved label invisible
         self.CRTG_saved_label.grid_forget()
 
         # display label + entry button + secondary creation button
-        self.CRTG_label.grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        self.CRTG_entry.grid(row=1, column=1, padx=5, sticky="w")
-        self.CRTG_secondary_button.grid(row=2, column=0, padx=5, sticky="w")
+        self.CRTG_label.grid(row=1, column=0, sticky="w", padx=5)
+        self.CRTG_entry.grid(row=1, column=1, sticky="w", padx=5)
+        self.CRTG_secondary_button.grid(row=2, column=0, sticky="w", padx=5, pady=5)
     
     def CRTG_callback_func(self, input):
         """ Callback function for CRTG_entry """
@@ -143,43 +167,30 @@ class BillSplitting:
         # Create new group
         else:
             os.mkdir(new_group_path)
-            self.CRTG_saved_label.grid(row=1, column=0, pady=5)
+            self.CRTG_saved_label.grid(row=1, column=0)
             self.RMG_main_button.config(state="normal")
-            self.CRTG_quit_func(event)
-
-    def CRTG_quit_func(self, event):
-        """ Quit group creation part """
-        
-        # make clickable main create button
-        self.CRTG_main_button.config(state="normal")
-
-        # Make invisible create group label + create group entry + create group "already exist" label + secondary create button
-        self.CRTG_entry.delete(first=0, last="end")
-        self.CRTG_already_exists_label.grid_forget()
-        self.CRTG_label.grid_forget()
-        self.CRTG_entry.grid_forget()
-        self.CRTG_secondary_button.grid_forget()
+            self.MASTER_quit_func(event)
     
     def RMG_main_button_func(self, event=None):
-        """ Display label + entry for removing group """
+        """ Display label + combobox for removing group """
         
-        # make disable main remove button
-        self.RMG_main_button.config(state="disable")
-
         # make group saved label invisible
         self.CRTG_saved_label.grid_forget()
 
-        # Close group creation part
-        self.CRTG_quit_func(event)
+        # Close group creation part + group selection part
+        self.MASTER_quit_func(event)
+
+        # disable main remove button
+        self.RMG_main_button.config(state="disable")
 
         self.RMG_label.grid(row=4, column=0, sticky="w", padx=5)
         self.RMG_combobox.config(value=sorted(os.listdir(self.GROUPS_PATH)), state="readonly")
         self.RMG_combobox.grid(row=4, column=1, sticky="w", padx=5)
-        self.RMG_secondary_button.grid(row=5, column=0, sticky="w", padx=5)
-    
+        self.RMG_secondary_button.grid(row=5, column=0, sticky="w", padx=5, pady=5)
+        
     def RMG_secondary_button_func(self, event=None):
         """ Remove a group """
-
+        
         # if combobox selected a group name
         if self.RMG_combobox.get():
             shutil.rmtree(os.path.join(self.GROUPS_PATH, self.RMG_combobox.get()))
@@ -191,18 +202,45 @@ class BillSplitting:
         if len(os.listdir(self.GROUPS_PATH)) == 0:
             self.RMG_secondary_button.config(state="disable")
 
-    def RMG_quit_func(self, event):
-        """ Quit group deletion """
+    def GS_main_button_func(self, event=None):
+        """ Display label + combobox to select group """
+        
+        # make group saved label invisible
+        self.CRTG_saved_label.grid_forget()
 
-        # make clickable main create button
-        self.RMG_main_button.config(state="normal")
+        # Close group creation part + remove group part
+        self.MASTER_quit_func(event)
 
-        self.RMG_label.grid_forget()
-        self.RMG_combobox.grid_forget()
-        self.RMG_secondary_button.grid_forget()
-        self.RMG_deteted_label.grid_forget()
-        self.RMG_secondary_button.config(state="normal")
+        # disable main select button
+        self.GS_main_button.config(state="disable")     
+
+        self.GS_label.grid(row=7, column=0, sticky="w", padx=5)
+        self.GS_combobox.config(value=sorted(os.listdir(self.GROUPS_PATH)), state="readonly")
+        self.GS_combobox.grid(row=7, column=1, sticky="w", padx=5)
+        self.GS_secondary_button.grid(row=8, column=0, sticky="w", padx=5, pady=5)
+
+    def GS_secondary_button_func(self, event=None):
+        """ Select a group and open the group window """
+
+        # if combobox selected a group name
+        if self.GS_combobox.get():
+            GroupWindow()
+            self.master.destroy()
+
+class GroupWindow:
+    """ Group Window """
+    
+    GROUP_NAME = MenuWindow().GS_combobox.get()
+
+    def __init__(self):
+        
+        
+
+        self.master = tk.Tk()
+
+        # Main window cuztomization
+
 
 
 if __name__ == "__main__":
-    BillSplitting()
+    MenuWindow()
