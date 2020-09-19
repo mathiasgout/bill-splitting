@@ -1,6 +1,7 @@
 """ Menu Window part """
 
 import os
+import re
 import shutil
 import tkinter as tk
 from tkinter import ttk
@@ -146,9 +147,11 @@ class MenuWindow:
     def CRTG_callback_func(self, input):
         """ Callback function for CRTG_entry """
         
-        if " " in input or "é" in input:
+        if any(i in input for i in ("\\", " ", "/", ">", "<", ":", "|", "?", "*", "[", "]", "@", "!", "#", "$", "%",
+                                    "^", "&", "(", ")", '"', "'", "{", "}", "~", "°", "`", "ç", "à", "-", "=",
+                                    "+", ".", ";", ",", "§", "£", "€")):
             return False
-        
+
         if len(input) > 15:
             return False
 
