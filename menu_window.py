@@ -34,17 +34,17 @@ class MenuWindow:
 
         # Height and width
         self.screen_height = self.master.winfo_screenheight()
-        self.WIDTH_MASTER, self.HEIGHT_MASTER = int(self.screen_height * 0.4), int(self.screen_height * 0.4)
+        self.WIDTH, self.HEIGHT = int(self.screen_height * 0.4), int(self.screen_height * 0.4)
         
         # Main Window customization 
         self.master.title("Partage des dépenses")
-        self.master.geometry("{}x{}".format(self.WIDTH_MASTER, self.HEIGHT_MASTER))
-        self.master.minsize(self.WIDTH_MASTER, self.HEIGHT_MASTER)
-        self.master.maxsize(self.WIDTH_MASTER, self.HEIGHT_MASTER)
+        self.master.geometry("{}x{}".format(self.WIDTH, self.HEIGHT))
+        self.master.minsize(self.WIDTH, self.HEIGHT)
+        self.master.maxsize(self.WIDTH, self.HEIGHT)
         self.master.config(bg=self.GREEN) 
 
         # Create master frame
-        self.frame_master = tk.Frame(self.master, width=(self.WIDTH_MASTER*0.94), height=(self.HEIGHT_MASTER*0.94), bg=self.GREEN)
+        self.frame_master = tk.Frame(self.master, width=(self.WIDTH*0.94), height=(self.HEIGHT*0.94), bg=self.GREEN)
         self.frame_master.place(relx=0.03, rely=0.03)
 
         # Create group part (CRTG)
