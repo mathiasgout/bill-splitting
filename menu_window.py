@@ -225,8 +225,14 @@ class MenuWindow:
     def GS_secondary_button_func(self, event=None):
         """ Select a group and open the group window """
 
+        group_selected = self.GS_combobox.get()
+
         # if combobox selected a group name
-        if self.GS_combobox.get():
+        if group_selected:
+            
+            # create a file with the group selected name
+            with open(os.path.join(self.SAVED_FILES_PATH, "group_selected.txt"), "w") as f:
+                f.write(group_selected)
 
             # destroy menu window
             self.master.destroy()
