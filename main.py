@@ -33,11 +33,12 @@ class MenuWindow:
 
         # Height and width
         self.screen_height = self.master.winfo_screenheight()
+        self.screen_width = self.master.winfo_screenwidth()
         self.WIDTH, self.HEIGHT = int(self.screen_height * 0.4), int(self.screen_height * 0.4)
         
         # Main Window customization 
         self.master.title("Partage des dépenses")
-        self.master.geometry("{}x{}".format(self.WIDTH, self.HEIGHT))
+        self.master.geometry("{}x{}+{}+{}".format(self.WIDTH, self.HEIGHT, int((self.screen_width-self.WIDTH)/2), int((self.screen_height-1.5*self.HEIGHT)/2)))
         self.master.minsize(self.WIDTH, self.HEIGHT)
         self.master.maxsize(self.WIDTH, self.HEIGHT)
         self.master.config(bg=self.GREEN) 
@@ -279,11 +280,12 @@ class GroupWindow:
 
         # Height and width
         self.screen_height = self.master.winfo_screenheight()
+        self.screen_width = self.master.winfo_screenwidth()
         self.WIDTH, self.HEIGHT = int(self.screen_height * 0.8), int(self.screen_height * 0.6)
 
         # Main window cuztomization
         self.master.title("Groupe : {}".format(self.GROUP_NAME))
-        self.master.geometry("{}x{}".format(self.WIDTH, self.HEIGHT))
+        self.master.geometry("{}x{}+{}+{}".format(self.WIDTH, self.HEIGHT, int((self.screen_width-self.WIDTH)/2), int((self.screen_height-self.HEIGHT)/2)))
         self.master.minsize(self.WIDTH, self.HEIGHT)
         self.master.maxsize(self.WIDTH, self.HEIGHT)
         self.master.config(bg="white")
