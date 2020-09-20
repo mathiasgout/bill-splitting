@@ -35,10 +35,12 @@ class MenuWindow:
         self.screen_height = self.master.winfo_screenheight()
         self.screen_width = self.master.winfo_screenwidth()
         self.WIDTH, self.HEIGHT = int(self.screen_height * 0.4), int(self.screen_height * 0.4)
+        master_x = int((self.screen_width-self.WIDTH)/2)
+        master_y = int((self.screen_height-1.5*self.HEIGHT)/2)
         
         # Main Window customization 
         self.master.title("Partage des dépenses")
-        self.master.geometry("{}x{}+{}+{}".format(self.WIDTH, self.HEIGHT, int((self.screen_width-self.WIDTH)/2), int((self.screen_height-1.5*self.HEIGHT)/2)))
+        self.master.geometry("{}x{}+{}+{}".format(self.WIDTH, self.HEIGHT, master_x, master_y))
         self.master.minsize(self.WIDTH, self.HEIGHT)
         self.master.maxsize(self.WIDTH, self.HEIGHT)
         self.master.config(bg=self.GREEN) 
@@ -282,10 +284,14 @@ class GroupWindow:
         self.screen_height = self.master.winfo_screenheight()
         self.screen_width = self.master.winfo_screenwidth()
         self.WIDTH, self.HEIGHT = int(self.screen_height * 0.8), int(self.screen_height * 0.6)
+        master_x = int((self.screen_width-self.WIDTH)/2)
+        master_y = int((self.screen_height-self.HEIGHT)/2)
+
+        self.WIDTH_child_window, self.HEIGHT_child_window = int(self.WIDTH * 0.6), int(self.HEIGHT * 0.1)
 
         # Main window cuztomization
         self.master.title("Groupe : {}".format(self.GROUP_NAME))
-        self.master.geometry("{}x{}+{}+{}".format(self.WIDTH, self.HEIGHT, int((self.screen_width-self.WIDTH)/2), int((self.screen_height-self.HEIGHT)/2)))
+        self.master.geometry("{}x{}+{}+{}".format(self.WIDTH, self.HEIGHT, master_x, master_y))
         self.master.minsize(self.WIDTH, self.HEIGHT)
         self.master.maxsize(self.WIDTH, self.HEIGHT)
         self.master.config(bg="white")
@@ -298,7 +304,7 @@ class GroupWindow:
         self.menu_bar.add_cascade(label="Fichier", menu=self.file_menu)
         
         self.edit_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
-        self.edit_menu.add_command(label="Ajouter un membre")
+        self.edit_menu.add_command(label="Ajouter un membre", command=self.MENU_edit_add_member_func)
         self.edit_menu.add_command(label="Supprimer un membre")
         self.menu_bar.add_cascade(label="Éditer", menu=self.edit_menu)
         self.master.config(menu=self.menu_bar)
@@ -312,7 +318,7 @@ class GroupWindow:
         self.right_frame = tk.Frame(self.master, width=3*self.WIDTH/4, height=self.HEIGHT, highlightbackground="black",
                                     highlightthickness=1, bg="white")
         self.right_frame.grid(row=0, column=1)
-
+        
         self.master.mainloop()
 
     def MENU_file_open_new_group_func(self):
@@ -323,6 +329,25 @@ class GroupWindow:
         
         # Open menu window
         launch_menu_window()
+
+    def MENU_edit_add_member_func(self):
+        """ Add a new member in the group """
+
+        # Window customization
+        self.new_member_window = tk.Toplevel(self.master)
+        self.new_member_window.title("Ajouter un nouveau membre")
+        self.new_member_window.geometry("{}x{}+{}+{}".format(self.WIDTH_child_window, self.HEIGHT_child_window,
+                                                int(self.master.winfo_x()+(self.WIDTH-self.WIDTH_child_window)*0.5), 
+                                                int(self.master.winfo_y()+(self.HEIGHT-self.HEIGHT_child_window)*0.3)))
+        
+        # grab_set : disable main window while new window open
+        # attributes('-topmost', True) : new window always in front
+        self.new_member_window.attributes('-topmost', True)
+        self.new_member_window.grab_set() 
+
+        
+        
+        
         
 def launch_menu_window():
     """ A function which launch MenuWindow class """
