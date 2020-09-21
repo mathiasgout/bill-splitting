@@ -1,7 +1,6 @@
 """ Bill-Splitting App """
 
 import os
-import re
 import shutil
 import tkinter as tk
 from tkinter import ttk
