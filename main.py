@@ -332,17 +332,25 @@ class GroupWindow:
     def MENU_edit_add_member_func(self):
         """ Add a new member in the group """
 
-        # Window customization
-        self.new_member_window = tk.Toplevel(self.master)
-        self.new_member_window.title("Ajouter un nouveau membre")
-        self.new_member_window.geometry("{}x{}+{}+{}".format(self.WIDTH_child_window, self.HEIGHT_child_window,
+        # Window customization (NM = New Member)
+        self.NM_window = tk.Toplevel(self.master)
+        self.NM_window.title("Ajouter un nouveau membre")
+        self.NM_window.geometry("{}x{}+{}+{}".format(self.WIDTH_child_window, self.HEIGHT_child_window,
                                                 int(self.master.winfo_x()+(self.WIDTH-self.WIDTH_child_window)*0.5), 
                                                 int(self.master.winfo_y()+(self.HEIGHT-self.HEIGHT_child_window)*0.3)))
+        self.NM_window.minsize(self.WIDTH_child_window, self.HEIGHT_child_window)
+        self.NM_window.maxsize(self.WIDTH_child_window, self.HEIGHT_child_window)
         
         # grab_set : disable main window while new window open
         # attributes('-topmost', True) : new window always in front
-        self.new_member_window.attributes('-topmost', True)
-        self.new_member_window.grab_set() 
+        self.NM_window.attributes('-topmost', True)
+        self.NM_window.grab_set() 
+
+        # Widget in "add member" window
+        self.NM_entry = tk.Entry(self.NM_window, font=("Helvetica", int(self.screen_height/50)))
+        self.NM_entry.place(relx=0.05, rely=0.05, relwidth=0.90)
+
+
 
         
         
