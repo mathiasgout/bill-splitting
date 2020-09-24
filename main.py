@@ -299,12 +299,12 @@ class GroupWindow:
         self.menu_bar = tk.Menu(self.master, bg="white")
         
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
-        self.file_menu.add_command(label="Ouvrir un nouveau groupe", command=self.MENU_file_open_new_group_func)
+        self.file_menu.add_command(label="Ouvrir un nouveau groupe", command=self.MENU_FILE_ONG_main_func)
         self.menu_bar.add_cascade(label="Fichier", menu=self.file_menu)
         
         self.edit_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
-        self.edit_menu.add_command(label="Ajouter un membre", command=self.MENU_edit_add_member_func)
-        self.edit_menu.add_command(label="Supprimer un membre")
+        self.edit_menu.add_command(label="Ajouter un membre", command=self.MENU_EDIT_ANM_main_func)
+        self.edit_menu.add_command(label="Supprimer un membre", command=self.MENU_EDIT_RMM_main_func)
         self.menu_bar.add_cascade(label="Éditer", menu=self.edit_menu)
         self.master.config(menu=self.menu_bar)
 
@@ -320,8 +320,8 @@ class GroupWindow:
         
         self.master.mainloop()
 
-    def MENU_file_open_new_group_func(self):
-        """ Close this window and open menu window """
+    def MENU_FILE_ONG_main_func(self):
+        """ Close this window and open menu window  (ONG : Open New Group)"""
         
         # Quit group window
         self.master.destroy()
@@ -329,33 +329,141 @@ class GroupWindow:
         # Open menu window
         launch_menu_window()
 
-    def MENU_edit_add_member_func(self):
-        """ Add a new member in the group """
+    def MENU_EDIT_ANM_main_func(self):
+        """ Add a new member in the group (ANM : Add New Member) """
 
-        # Window customization (NM = New Member)
-        self.NM_window = tk.Toplevel(self.master)
-        self.NM_window.title("Ajouter un nouveau membre")
-        self.NM_window.geometry("{}x{}+{}+{}".format(self.WIDTH_child_window, self.HEIGHT_child_window,
+        self.ANM_window = tk.Toplevel(self.master)
+
+        # Espace bind key
+        self.ANM_window.bind("<Escape>", lambda x: self.ANM_window.destroy())
+
+        # Window customization 
+        self.ANM_window.title("Ajouter un nouveau membre")
+        self.ANM_window.geometry("{}x{}+{}+{}".format(self.WIDTH_child_window, self.HEIGHT_child_window,
                                                 int(self.master.winfo_x()+(self.WIDTH-self.WIDTH_child_window)*0.5), 
                                                 int(self.master.winfo_y()+(self.HEIGHT-self.HEIGHT_child_window)*0.3)))
-        self.NM_window.minsize(self.WIDTH_child_window, self.HEIGHT_child_window)
-        self.NM_window.maxsize(self.WIDTH_child_window, self.HEIGHT_child_window)
+        self.ANM_window.minsize(self.WIDTH_child_window, self.HEIGHT_child_window)
+        self.ANM_window.maxsize(self.WIDTH_child_window, self.HEIGHT_child_window)
         
         # grab_set : disable main window while new window open
         # attributes('-topmost', True) : new window always in front
-        self.NM_window.attributes('-topmost', True)
-        self.NM_window.grab_set() 
+        self.ANM_window.attributes('-topmost', True)
+        self.ANM_window.grab_set() 
 
         # Widget in "add member" window
-        self.NM_entry = tk.Entry(self.NM_window, font=("Helvetica", int(self.screen_height/50)))
-        self.NM_entry.place(relx=0.05, rely=0.05, relwidth=0.90)
+        self.ANM_reg = self.ANM_window.register(self.MENU_EDIT_ANM_callback_func)
+        self.ANM_entry = tk.Entry(self.ANM_window, font=("Helvetica", int(self.screen_height/70)), justify="center",
+                                  validate="key", validatecommand=(self.ANM_reg, '%P'))
+        self.ANM_entry.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
+        self.ANM_entry.bind("<Return>", self.MENU_EDIT_ANM_button_func)
+
+        self.ANM_button = tk.Button(self.ANM_window, text="AJOUTER", command=self.MENU_EDIT_ANM_button_func)
+        self.ANM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+
+        self.ANM_already_exist_label = tk.Label(self.ANM_window, text="Ce membre existe déjà !",
+                                               font=("Helvetica", int(self.screen_height/80)), fg="red")
+        
+        self.ANM_member_created_label = tk.Label(self.ANM_window, text="Nouveau membre créé !",
+                                                font=("Helvetica", int(self.screen_height/80)), fg="green")
+
+        self.ANM_invalid_name_label = tk.Label(self.ANM_window, text="Nom invalide",
+                                               font=("Helvetica", int(self.screen_height/80)), fg="red")
+
+    def MENU_EDIT_ANM_button_func(self, event=None):
+        """ Add new member """ 
+
+        new_member = self.ANM_entry.get()
+        new_member_path = os.path.join(self.GROUP_PATH, "{}.json".format(new_member))
+        
+        # Check if it is a valid name
+        if not new_member:
+            self.ANM_invalid_name_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+
+        # Check if member already exist
+        elif os.path.exists(new_member_path):
+            self.ANM_button.place_forget()
+            self.ANM_already_exist_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+
+        # Create new member
+        else:
+            with open(new_member_path, 'w') as f:
+                pass
+            self.ANM_button.place_forget()
+            self.ANM_member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+        
+    def MENU_EDIT_ANM_callback_func(self, input):
+        """ Callback function for ANM_entry """
+        
+        if any(i in input for i in ("\\", " ", "/", ">", "<", ":", "|", "?", "*", "[", "]", "@", "!", "#", "$", "%",
+                                    "^", "&", "(", ")", '"', "'", "{", "}", "~", "°", "`", "ç", "à", "-", "=",
+                                    "+", ".", ";", ",", "§", "£", "€")):
+            return False
+
+        if len(input) > 15:
+            return False
+
+        else:
+            self.ANM_invalid_name_label.place_forget()
+            self.ANM_already_exist_label.place_forget()
+            self.ANM_member_created_label.place_forget()
+            self.ANM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+            return True
+    
+    def MENU_EDIT_RMM_main_func(self):
+        """ Remove a member (RMM : ReMove Member) """
+
+        self.RMM_window = tk.Toplevel(self.master)
+
+        # Espace bind key
+        self.RMM_window.bind("<Escape>", lambda x: self.RMM_window.destroy())
+
+        # Window customization 
+        self.RMM_window.title("Supprimer un membre")
+        self.RMM_window.geometry("{}x{}+{}+{}".format(self.WIDTH_child_window, self.HEIGHT_child_window,
+                                                int(self.master.winfo_x()+(self.WIDTH-self.WIDTH_child_window)*0.5), 
+                                                int(self.master.winfo_y()+(self.HEIGHT-self.HEIGHT_child_window)*0.3)))
+        self.RMM_window.minsize(self.WIDTH_child_window, self.HEIGHT_child_window)
+        self.RMM_window.maxsize(self.WIDTH_child_window, self.HEIGHT_child_window)  
+
+        # grab_set : disable main window while new window open
+        # attributes('-topmost', True) : new window always in front
+        self.RMM_window.attributes('-topmost', True)
+        self.RMM_window.grab_set()   
+
+        # Widget in "Remove member" window
+        self.RMM_combobox = ttk.Combobox(self.RMM_window, value=sorted([name[:-5] for name in os.listdir(self.GROUP_PATH)]), 
+                                         state="readonly", font=("Helvetica", int(self.screen_height/70)))
+        self.RMM_combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
+        self.RMM_combobox.bind("<Button-1>", self.MENU_EDIT_RMM_bind_func)
+        self.RMM_combobox.bind("<Return>", self.MENU_EDIT_RMM_button_func)
+
+        self.RMM_button = tk.Button(self.RMM_window, text="SUPPRIMER", command=self.MENU_EDIT_RMM_button_func)
+        self.RMM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+
+        self.RMM_member_deleted_label = tk.Label(self.RMM_window, text="Membre supprimé !",
+                                                 font=("Helvetica", int(self.screen_height/80)), fg="green")
+
+    def MENU_EDIT_RMM_button_func(self, event=None):
+        """ Remove a member """
+
+        # if combobox selected a group name
+        if self.RMM_combobox.get():
+            os.remove(os.path.join(self.GROUP_PATH, "{}.json".format(self.RMM_combobox.get())))
+            self.RMM_member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.RMM_combobox.set("")
+            self.RMM_combobox.config(value=sorted([name[:-5] for name in os.listdir(self.GROUP_PATH)]))
+
+        # If no group, disable remove button 
+        if len(os.listdir(self.GROUP_PATH)) == 0:
+            self.RMM_button.config(state="disable")
+
+    def MENU_EDIT_RMM_bind_func(self, event=None):
+        """ button 1 bind on 'remove window' """
+
+        self.RMM_member_deleted_label.place_forget()
+        self.RMM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
 
-
-        
-        
-        
-        
 def launch_menu_window():
     """ A function which launch MenuWindow class """
 
