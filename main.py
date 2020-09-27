@@ -259,7 +259,7 @@ class GroupWindow:
         self.master.config(bg="white")
 
         # Menu bar
-        self.menu_bar = tk.Menu(self.master, bg="white")
+        self.menu_bar = tk.Menu(self.master, bg="white", relief="flat")
         
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
         self.file_menu.add_command(label="Ouvrir un nouveau groupe", command=self.MENU_FILE_ONG_main_func)
@@ -273,8 +273,9 @@ class GroupWindow:
 
         # Left frame
         self.left_frame = tk.Frame(self.master, width=GW_LEFT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
-                                   highlightthickness=1, bg=GREEN)
+                                   highlightthickness=1, bg=GREEN, padx=10)
         self.left_frame.grid(row=0, column=0)
+        self.display_members()
 
         # Right frame
         self.right_frame = tk.Frame(self.master, width=GW_RIGHT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
@@ -305,7 +306,7 @@ class GroupWindow:
         self.ANM_window = tk.Toplevel(self.master)
         
         # Pop Up window cuztomization
-        PopUpWindow(self.ANM_window, "Créer un nouveau groupe", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
+        PopUpWindow(self.ANM_window, "Créer un nouveau membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
 
         # Widget in "add member" window
         self.ANM_register = self.ANM_window.register(self.MENU_EDIT_ANM_callback_func)
@@ -410,6 +411,15 @@ class GroupWindow:
         self.RMM_member_deleted_label.place_forget()
         self.RMM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
+# ---------------------------------------- Left Frame -----------------------------------------------------
+
+    def display_members(self):
+        """ A function to display the members """
+
+        members = os.listdir(self.GROUP_PATH)
+
+        for i, mb in enumerate(members):
+            tk.Button(self.left_frame, text="{}".format(mb[:-4])).place(relx=0.02, rely=0.02 + i/20, relwidth=0.96, relheight=0.05)
+
 if __name__ == "__main__":
     MenuWindow()
-
