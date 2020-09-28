@@ -1,6 +1,7 @@
 """ Bill-Splitting App """
 
 import os
+import json
 import shutil
 import tkinter as tk
 from tkinter import ttk
@@ -138,6 +139,9 @@ class MenuWindow:
             self.CREATE_secondary_button.place_forget()
             self.CREATE_member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
+            # create members.txt file
+            with open(os.path.join(new_group_path, "members.txt"), "w") as f:
+                pass
 
     def CREATE_callback_func(self, input):
         """ Callback function for CREATE_entry """
@@ -251,6 +255,18 @@ class GroupWindow:
             self.GROUP_NAME = f.readline()
         self.GROUP_PATH = os.path.join(GROUPS_PATH, self.GROUP_NAME)
 
+        # Create members list and members button
+        try :
+            with open(os.path.join(self.GROUP_PATH, "members.txt"), "r") as f:
+                self.members_list = json.loads(f.read())
+        except:
+            self.members_list = []
+        
+        self.members_button = []
+
+        # Save member list while master window is closed
+        self.master.protocol("WM_DELETE_WINDOW", self.save_member_list_func)
+
         # Master window customization
         self.master.title("Partage des dépenses")
         self.master.geometry("{}x{}+{}+{}".format(GW_WIDTH, GW_HEIGHT, GW_POS_X, GW_POS_Y))
@@ -284,6 +300,16 @@ class GroupWindow:
         
         # display
         self.master.mainloop()
+
+# --------------------------------------------- Other functions -------------------------------------------------------
+
+    def save_member_list_func(self):
+        """ Save member list as members.txt """
+        
+        with open(os.path.join(self.GROUP_PATH, "members.txt"), "w") as f:
+            f.write(json.dumps(self.members_list))
+        
+        self.master.destroy()
 
 # --------------------------------------------- Menu part -------------------------------------------------------
 
@@ -327,30 +353,38 @@ class GroupWindow:
         self.ANM_invalid_name_label = tk.Label(self.ANM_window, text="Nom invalide",
                                                font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
 
+        self.ANM_too_many_members_label = tk.Label(self.ANM_window, text="Trop de membres (max. 15)",
+                                                  font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
+
     def MENU_EDIT_ANM_button_func(self, event=None):
         """ Add new member """ 
 
         new_member = self.ANM_entry.get()
         new_member_path = os.path.join(self.GROUP_PATH, "{}.csv".format(new_member))
 
-        # clear entry
+        # clear entry and make button invisible
         self.ANM_entry.delete(0, "end")
+        self.ANM_button.place_forget()
+
+        # Check if there is more than 15 members
+        if len(self.members_list) > 15:
+            self.ANM_too_many_members_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
         # Check if it is a valid name
-        if not new_member:
+        elif not new_member:
             self.ANM_invalid_name_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
         # Check if member already exist
         elif os.path.exists(new_member_path):
-            self.ANM_button.place_forget()
             self.ANM_already_exist_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
-
+    
         # Create new member
         else:
             with open(new_member_path, 'w') as f:
                 pass
-            self.ANM_button.place_forget()
+            self.members_list.append(new_member)
             self.ANM_member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.display_members()
         
     def MENU_EDIT_ANM_callback_func(self, input):
         """ Callback function for ANM_entry """
@@ -365,6 +399,7 @@ class GroupWindow:
             self.ANM_invalid_name_label.place_forget()
             self.ANM_already_exist_label.place_forget()
             self.ANM_member_created_label.place_forget()
+            self.ANM_too_many_members_label.place_forget()
             self.ANM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
             return True
     
@@ -379,7 +414,7 @@ class GroupWindow:
         PopUpWindow(self.RMM_window, "Supprimer un membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
 
         # Widget in "Remove member" window
-        self.RMM_combobox = ttk.Combobox(self.RMM_window, value=sorted([name[:-4] for name in os.listdir(self.GROUP_PATH)]), 
+        self.RMM_combobox = ttk.Combobox(self.RMM_window, value=self.members_list, 
                                          state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
         self.RMM_combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
         self.RMM_combobox.bind("<Button-1>", self.MENU_EDIT_RMM_bind_func)
@@ -397,12 +432,14 @@ class GroupWindow:
         # if combobox selected a group name
         if self.RMM_combobox.get():
             os.remove(os.path.join(self.GROUP_PATH, "{}.csv".format(self.RMM_combobox.get())))
+            self.members_list.remove(self.RMM_combobox.get())
             self.RMM_member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
             self.RMM_combobox.set("")
-            self.RMM_combobox.config(value=sorted([name[:-4] for name in os.listdir(self.GROUP_PATH)]))
+            self.RMM_combobox.config(value=self.members_list)
+            self.display_members()
 
         # If no group, disable remove button 
-        if len(os.listdir(self.GROUP_PATH)) == 0:
+        if len(os.listdir(self.GROUP_PATH)) == 1:
             self.RMM_button.config(state="disable")
 
     def MENU_EDIT_RMM_bind_func(self, event=None):
@@ -416,10 +453,18 @@ class GroupWindow:
     def display_members(self):
         """ A function to display the members """
 
-        members = os.listdir(self.GROUP_PATH)
+        for widget in self.members_button:
+            widget.destroy()
 
-        for i, mb in enumerate(members):
-            tk.Button(self.left_frame, text="{}".format(mb[:-4])).place(relx=0.02, rely=0.02 + i/20, relwidth=0.96, relheight=0.05)
+        self.members_button = []
+        for i, mb in enumerate(self.members_list):
+            self.members_button.append(tk.Button(self.left_frame, text="{}".format(mb), command=lambda mb=mb: self.open_this(mb)))
+            self.members_button[i].place(relx=0.02, rely=0.02 + i/20, relwidth=0.96, relheight=0.05)
+    
+    @staticmethod
+    def open_this(member):
+        print(member)
+
 
 if __name__ == "__main__":
     MenuWindow()
