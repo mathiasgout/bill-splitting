@@ -289,8 +289,9 @@ class GroupWindow:
 
         # Left frame
         self.left_frame = tk.Frame(self.master, width=GW_LEFT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
-                                   highlightthickness=1, bg=GREEN, padx=10)
+                                   highlightthickness=1, bg=GREEN, padx=10, pady=10)
         self.left_frame.grid(row=0, column=0)
+
         self.display_members()
 
         # Right frame
@@ -458,8 +459,9 @@ class GroupWindow:
 
         self.members_button = []
         for i, mb in enumerate(self.members_list):
-            self.members_button.append(tk.Button(self.left_frame, text="{}".format(mb), command=lambda mb=mb: self.open_this(mb)))
-            self.members_button[i].place(relx=0.02, rely=0.02 + i/20, relwidth=0.96, relheight=0.05)
+            self.members_button.append(tk.Button(self.left_frame, text="{}".format(mb), command=lambda mb=mb: self.open_this(mb), 
+                                       relief="flat", anchor="w", bg=GREEN, highlightthickness=0, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold")))
+            self.members_button[i].place(relx=0, rely=0.02 + i/20, relwidth=1, relheight=0.05)
     
     @staticmethod
     def open_this(member):
