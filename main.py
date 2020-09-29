@@ -3,8 +3,10 @@
 import os
 import json
 import shutil
+import datetime
 import tkinter as tk
 from tkinter import ttk
+from tkcalendar import DateEntry
 from constants import *
 
 
@@ -255,7 +257,7 @@ class GroupWindow:
             self.GROUP_NAME = f.readline()
         self.GROUP_PATH = os.path.join(GROUPS_PATH, self.GROUP_NAME)
 
-        # Create members list and members button
+        # Create members list and members button + entry
         try :
             with open(os.path.join(self.GROUP_PATH, "members.txt"), "r") as f:
                 self.members_list = json.loads(f.read())
@@ -263,12 +265,14 @@ class GroupWindow:
             self.members_list = []
         
         self.members_button = []
+        self.members_entry = []
+        self.members_pourcent_label = []
 
         # Save member list while master window is closed
         self.master.protocol("WM_DELETE_WINDOW", self.save_member_list_func)
 
         # Master window customization
-        self.master.title("Partage des dépenses")
+        self.master.title("Groupe {}".format(self.GROUP_NAME))
         self.master.geometry("{}x{}+{}+{}".format(GW_WIDTH, GW_HEIGHT, GW_POS_X, GW_POS_Y))
         self.master.minsize(GW_WIDTH, GW_HEIGHT)
         self.master.maxsize(GW_WIDTH, GW_HEIGHT)
@@ -287,13 +291,28 @@ class GroupWindow:
         self.menu_bar.add_cascade(label="Édition", menu=self.edit_menu)
         self.master.config(menu=self.menu_bar)
 
-        # Left frame
+        # Left frame (LF)
         self.left_frame = tk.Frame(self.master, width=GW_LEFT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
                                    highlightthickness=1, bg=GREEN, padx=10, pady=10)
         self.left_frame.grid(row=0, column=0)
 
-        self.display_members()
+        self.display_members_func()
 
+        self.LF_start_label = tk.Label(self.left_frame, text='Début :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
+        self.LF_start_label.place(relw=0, rely=0.80, relheight=0.04, relwidth=0.5)
+
+        self.LF_calendar_start_entry = DateEntry(self.left_frame, date_pattern="dd/mm/y", locale="fr")
+        self.LF_calendar_start_entry.place(relx=0.5, rely=0.80, relheight=0.04, relwidth=0.5)
+
+        self.LF_end_label = tk.Label(self.left_frame, text='Fin :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
+        self.LF_end_label.place(relw=0, rely=0.85, relheight=0.04, relwidth=0.5)
+
+        self.LF_calendar_end_entry = DateEntry(self.left_frame, date_pattern="dd/mm/y", locale="fr")
+        self.LF_calendar_end_entry.place(relx=0.5, rely=0.85, relheight=0.04, relwidth=0.5)
+
+        self.LF_calculate_button = tk.Button(self.left_frame, text="CALCULER", font=("Helvetica", GW_CALCULATE_BUTTON_FONT_SIZE, "bold"))
+        self.LF_calculate_button.place(relx=0, rely=0.9, relwidth=1, relheight=0.05)
+        
         # Right frame
         self.right_frame = tk.Frame(self.master, width=GW_RIGHT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
                                     highlightthickness=1, bg="white")
@@ -354,7 +373,7 @@ class GroupWindow:
         self.ANM_invalid_name_label = tk.Label(self.ANM_window, text="Nom invalide",
                                                font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
 
-        self.ANM_too_many_members_label = tk.Label(self.ANM_window, text="Trop de membres (max. 15)",
+        self.ANM_too_many_members_label = tk.Label(self.ANM_window, text="Trop de membres (max. 12)",
                                                   font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
 
     def MENU_EDIT_ANM_button_func(self, event=None):
@@ -367,8 +386,8 @@ class GroupWindow:
         self.ANM_entry.delete(0, "end")
         self.ANM_button.place_forget()
 
-        # Check if there is more than 15 members
-        if len(self.members_list) > 15:
+        # Check if there is more than 12 members
+        if len(self.members_list) > 12:
             self.ANM_too_many_members_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
         # Check if it is a valid name
@@ -385,7 +404,7 @@ class GroupWindow:
                 pass
             self.members_list.append(new_member)
             self.ANM_member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
-            self.display_members()
+            self.display_members_func()
         
     def MENU_EDIT_ANM_callback_func(self, input):
         """ Callback function for ANM_entry """
@@ -393,7 +412,7 @@ class GroupWindow:
         if any(i in input for i in INVALID_CHAR):
             return False
 
-        if len(input) > 15:
+        if len(input) > 12:
             return False
 
         else:
@@ -437,9 +456,10 @@ class GroupWindow:
             self.RMM_member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
             self.RMM_combobox.set("")
             self.RMM_combobox.config(value=self.members_list)
-            self.display_members()
+            self.display_members_func()
 
         # If no group, disable remove button 
+        # 1 because of members.txt
         if len(os.listdir(self.GROUP_PATH)) == 1:
             self.RMM_button.config(state="disable")
 
@@ -451,18 +471,30 @@ class GroupWindow:
 
 # ---------------------------------------- Left Frame -----------------------------------------------------
 
-    def display_members(self):
+    def display_members_func(self):
         """ A function to display the members """
 
-        for widget in self.members_button:
-            widget.destroy()
+        for i in range(len(self.members_button)):
+            self.members_button[i].destroy()
+            self.members_entry[i].destroy()
+            self.members_pourcent_label[i].destroy()
+
 
         self.members_button = []
+        self.members_entry = []
+        self.members_pourcent_label = []
         for i, mb in enumerate(self.members_list):
-            self.members_button.append(tk.Button(self.left_frame, text="{}".format(mb), command=lambda mb=mb: self.open_this(mb), 
-                                       relief="flat", anchor="w", bg=GREEN, highlightthickness=0, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold")))
-            self.members_button[i].place(relx=0, rely=0.02 + i/20, relwidth=1, relheight=0.05)
-    
+            
+            self.members_button.append(tk.Button(self.left_frame, text="{}".format(mb), font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"),
+                                       relief="flat", anchor="w", bg=GREEN, highlightthickness=0, command=lambda mb=mb: self.open_this(mb)))
+            self.members_button[i].place(relx=0, rely=0.02 + i/20, relwidth=0.75, relheight=0.05)
+            
+            self.members_entry.append(tk.Entry(self.left_frame))
+            self.members_entry[i].place(relx=0.75, rely=0.025 + i/20, relwidth=0.15, relheight=0.04)
+
+            self.members_pourcent_label.append(tk.Label(self.left_frame, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE)))
+            self.members_pourcent_label[i].place(relx=0.9, rely=0.03 + i/20, relwidth=0.1, relheight=0.04)
+
     @staticmethod
     def open_this(member):
         print(member)
