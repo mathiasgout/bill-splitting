@@ -257,17 +257,13 @@ class GroupWindow:
             self.GROUP_NAME = f.readline()
         self.GROUP_PATH = os.path.join(GROUPS_PATH, self.GROUP_NAME)
 
-        # Create members list and members button + entry
+        # Create members list 
         try :
             with open(os.path.join(self.GROUP_PATH, "members.txt"), "r") as f:
                 self.members_list = json.loads(f.read())
         except:
             self.members_list = []
         
-        self.members_button = []
-        self.members_entry = []
-        self.members_pourcent_label = []
-
         # Save member list while master window is closed
         self.master.protocol("WM_DELETE_WINDOW", self.save_member_list_func)
 
@@ -292,11 +288,16 @@ class GroupWindow:
         self.master.config(menu=self.menu_bar)
 
         # Left frame (LF)
+        self.LF_members_button = []
+        self.LF_members_entry = []
+        self.LF_members_pourcent_label = []
+
         self.left_frame = tk.Frame(self.master, width=GW_LEFT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
                                    highlightthickness=1, bg=GREEN, padx=10, pady=10)
         self.left_frame.grid(row=0, column=0)
 
-        self.display_members_func()
+        self.LF_create_widgets_func(update=False)
+        self.LF_display_widgets_func()
 
         self.LF_start_label = tk.Label(self.left_frame, text='Début :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
         self.LF_start_label.place(relw=0, rely=0.80, relheight=0.04, relwidth=0.5)
@@ -313,10 +314,18 @@ class GroupWindow:
         self.LF_calculate_button = tk.Button(self.left_frame, text="CALCULER", font=("Helvetica", GW_CALCULATE_BUTTON_FONT_SIZE, "bold"))
         self.LF_calculate_button.place(relx=0, rely=0.9, relwidth=1, relheight=0.05)
         
-        # Right frame
+        # Right frame (RF)
         self.right_frame = tk.Frame(self.master, width=GW_RIGHT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
                                     highlightthickness=1, bg="white")
         self.right_frame.grid(row=0, column=1)
+        
+        self.RF_expenses_of_text = tk.StringVar()
+        self.RF_expenses_of_label = tk.Label(self.right_frame, textvariable=self.RF_expenses_of_text, bg='white', 
+                                             font=("Helvetica", GW_EXPENSES_OF_LABEL_FONT_SIZE, "bold"))
+
+        self.RF_new_expense_button = tk.Button(self.right_frame, text="Nouvelle dépense")
+
+        self.RF_historical_button = tk.Button(self.right_frame, text="Historique")
         
         # display
         self.master.mainloop()
@@ -404,7 +413,8 @@ class GroupWindow:
                 pass
             self.members_list.append(new_member)
             self.ANM_member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
-            self.display_members_func()
+            self.LF_create_widgets_func(update=True, add=True)
+            self.LF_display_widgets_func()
         
     def MENU_EDIT_ANM_callback_func(self, input):
         """ Callback function for ANM_entry """
@@ -452,11 +462,13 @@ class GroupWindow:
         # if combobox selected a group name
         if self.RMM_combobox.get():
             os.remove(os.path.join(self.GROUP_PATH, "{}.csv".format(self.RMM_combobox.get())))
+            self.LF_make_invisible_widgets_func() # must be placed before member_list.remove
             self.members_list.remove(self.RMM_combobox.get())
             self.RMM_member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
             self.RMM_combobox.set("")
             self.RMM_combobox.config(value=self.members_list)
-            self.display_members_func()
+            self.LF_create_widgets_func(update=True, add=False)
+            self.LF_display_widgets_func()
 
         # If no group, disable remove button 
         # 1 because of members.txt
@@ -471,33 +483,73 @@ class GroupWindow:
 
 # ---------------------------------------- Left Frame -----------------------------------------------------
 
-    def display_members_func(self):
-        """ A function to display the members """
+    def LF_create_widgets_func(self, update=True, add=True):
+        """ A function to create left frame widgets """
 
-        for i in range(len(self.members_button)):
-            self.members_button[i].destroy()
-            self.members_entry[i].destroy()
-            self.members_pourcent_label[i].destroy()
+        if update:
+            if add:
+                self.LF_members_button.append(tk.Button(self.left_frame, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"),
+                                                relief="flat", anchor="w", bg=GREEN, highlightthickness=0))
+                self.LF_members_entry.append(tk.Entry(self.left_frame))
+                self.LF_members_pourcent_label.append(tk.Label(self.left_frame, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE)))
+            else:
+                self.LF_members_button.pop()
+                self.LF_members_entry.pop()
+                self.LF_members_pourcent_label.pop()     
+        
+        else:
+            for _ in range(len(self.members_list)):
 
+                self.LF_members_button.append(tk.Button(self.left_frame, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"),
+                                                relief="flat", anchor="w", bg=GREEN, highlightthickness=0))
+                self.LF_members_entry.append(tk.Entry(self.left_frame))
+                self.LF_members_pourcent_label.append(tk.Label(self.left_frame, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE)))
+    
+    def LF_display_widgets_func(self):
+        """ A function to display the left frame widgets """
 
-        self.members_button = []
-        self.members_entry = []
-        self.members_pourcent_label = []
+        if len(self.members_list) > 0:
+            pourcent = int(100/len(self.members_list))
+
         for i, mb in enumerate(self.members_list):
             
-            self.members_button.append(tk.Button(self.left_frame, text="{}".format(mb), font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"),
-                                       relief="flat", anchor="w", bg=GREEN, highlightthickness=0, command=lambda mb=mb: self.open_this(mb)))
-            self.members_button[i].place(relx=0, rely=0.02 + i/20, relwidth=0.75, relheight=0.05)
+            self.LF_members_button[i].config(text=mb, command=lambda mb=mb: self.RF_member_profile(mb))
+            self.LF_members_button[i].place(relx=0, rely=0.02 + i/20, relwidth=0.75, relheight=0.05)
             
-            self.members_entry.append(tk.Entry(self.left_frame))
-            self.members_entry[i].place(relx=0.75, rely=0.025 + i/20, relwidth=0.15, relheight=0.04)
+            self.LF_members_entry[i].delete(0, "end")
+            self.LF_members_entry[i].insert(0, pourcent)
+            self.LF_members_entry[i].place(relx=0.75, rely=0.025 + i/20, relwidth=0.15, relheight=0.04)
 
-            self.members_pourcent_label.append(tk.Label(self.left_frame, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE)))
-            self.members_pourcent_label[i].place(relx=0.9, rely=0.03 + i/20, relwidth=0.1, relheight=0.04)
+            self.LF_members_pourcent_label[i].place(relx=0.9, rely=0.03 + i/20, relwidth=0.1, relheight=0.04)
 
-    @staticmethod
-    def open_this(member):
-        print(member)
+    def LF_make_invisible_widgets_func(self):
+        """ A function to make invisible the removed left frame widgets """
+        
+        if len(self.members_list) > 0:
+            self.LF_members_button[-1].place_forget()
+            self.LF_members_entry[-1].place_forget()
+            self.LF_members_pourcent_label[-1].place_forget()
+
+# ---------------------------------------- Right Frame -----------------------------------------------------
+
+    def RF_clear_func(self):
+        """ Clear right frame """
+        
+        self.RF_expenses_of_label.place_forget()
+        self.RF_new_expense_button.place_forget()
+        
+    def RF_member_profile(self, member):
+        """ Display member profile in the right frame """
+        
+        self.RF_expenses_of_text.set("Dépenses de {}".format(member))
+        self.RF_expenses_of_label.place(relx=0, rely=0.01, relwidth=1, relheight=0.05)
+
+        self.RF_new_expense_button.place(relx=0.125, rely=0.1, relwidth=0.25, relheight=0.05)
+
+        self.RF_historical_button.place(relx=0.6125, rely=0.1, relwidth=0.25, relheight=0.05)
+    
+    
+
 
 
 if __name__ == "__main__":
