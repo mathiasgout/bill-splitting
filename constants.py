@@ -33,6 +33,7 @@ GW_EXPENSES_OF_LABEL_FONT_SIZE = 18
 
 # pop up window
 PUW_WIDTH, PUW_HEIGHT = 500, 70
+PUW_WIDTH_BIG, PUW_HEIGHT_BIG = 400, 400
 
 # pop up window sizes
 PUW_ENTRY_FONT_SIZE = 15
@@ -43,6 +44,8 @@ PUW_LABEL_FONT_SIZE = 14
 INVALID_CHAR = ("\\", " ", "/", ">", "<", ":", "|", "?", "*", "[", "]", "@", "!", "#", "$", "%", "^", "&", "(", ")", 
                 '"', "'", "{", "}", "~", "°", "`", "ç", "à", "-", "=", "+", ".", ";", ",", "§", "£", "€")
 
+# type expense
+TYPE_LIST = ["<AUTRE>", "COURSE"]
 
 # color
 GREEN = "#D8EEED"

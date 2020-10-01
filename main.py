@@ -24,7 +24,7 @@ if os.path.exists(GROUPS_PATH) is False:
 class PopUpWindow:
     """ Pop Up window cuztomization """
 
-    def __init__(self, window, title, width_master, height_master, x_master, y_master):
+    def __init__(self, window, title, width_master, height_master, x_master, y_master, popup_width, popup_height):
         """
         window : a tkinter.TopLevel(master) window
         title : pop up windwow title
@@ -41,11 +41,11 @@ class PopUpWindow:
 
         # Window customization 
         self.window.title(title)
-        self.window.geometry("{}x{}+{}+{}".format(PUW_WIDTH, PUW_HEIGHT, 
-                                                  int(x_master + (width_master - PUW_WIDTH)*0.5), 
-                                                  int(y_master + (height_master - PUW_HEIGHT)*0.3)))
-        self.window.minsize(PUW_WIDTH, PUW_HEIGHT)
-        self.window.maxsize(PUW_WIDTH, PUW_HEIGHT)
+        self.window.geometry("{}x{}+{}+{}".format(popup_width, popup_height, 
+                                                  int(x_master + (width_master - popup_width)*0.5), 
+                                                  int(y_master + (height_master - popup_height)*0.3)))
+        self.window.minsize(popup_width, popup_height)
+        self.window.maxsize(popup_width, popup_height)
 
         # grab_set : disable main window while new window open
         # attributes('-topmost', True) : new window always in front
@@ -95,7 +95,7 @@ class MenuWindow:
         self.CREATE_window = tk.Toplevel(self.frame_master)
         
         # Pop Up window cuztomization
-        PopUpWindow(self.CREATE_window, "Créer un nouveau groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
+        PopUpWindow(self.CREATE_window, "Créer un nouveau groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
 
         # Pop Up window widgets 
         self.CREATE_register = self.CREATE_window.register(self.CREATE_callback_func)
@@ -169,7 +169,7 @@ class MenuWindow:
         self.REMOVE_window = tk.Toplevel(self.master)
 
         # Pop Up window cuztomization
-        PopUpWindow(self.REMOVE_window, "Supprimer un groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
+        PopUpWindow(self.REMOVE_window, "Supprimer un groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
 
         # Pop Up window widgets
         self.REMOVE_combobox = ttk.Combobox(self.REMOVE_window, value=sorted(os.listdir(GROUPS_PATH)), 
@@ -212,7 +212,7 @@ class MenuWindow:
         self.SELECT_window = tk.Toplevel(self.master)
 
         # Pop Up window cuztomization
-        PopUpWindow(self.SELECT_window, "Selectionner un groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
+        PopUpWindow(self.SELECT_window, "Selectionner un groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
 
         # Pop Up window widgets
         self.SELECT_combobox = ttk.Combobox(self.SELECT_window, value=sorted(os.listdir(GROUPS_PATH)), 
@@ -323,9 +323,9 @@ class GroupWindow:
         self.RF_expenses_of_label = tk.Label(self.right_frame, textvariable=self.RF_expenses_of_text, bg='white', 
                                              font=("Helvetica", GW_EXPENSES_OF_LABEL_FONT_SIZE, "bold"))
 
-        self.RF_new_expense_button = tk.Button(self.right_frame, text="Nouvelle dépense")
+        self.RF_NE_main_button = tk.Button(self.right_frame, text="Nouvelle dépense") # NE : New Expense
 
-        self.RF_historical_button = tk.Button(self.right_frame, text="Historique")
+        self.RF_HIST_main_button = tk.Button(self.right_frame, text="Historique") # HIST : Historical
         
         # display
         self.master.mainloop()
@@ -361,7 +361,7 @@ class GroupWindow:
         self.ANM_window = tk.Toplevel(self.master)
         
         # Pop Up window cuztomization
-        PopUpWindow(self.ANM_window, "Créer un nouveau membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
+        PopUpWindow(self.ANM_window, "Créer un nouveau membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
 
         # Widget in "add member" window
         self.ANM_register = self.ANM_window.register(self.MENU_EDIT_ANM_callback_func)
@@ -441,7 +441,7 @@ class GroupWindow:
         self.RMM_window = tk.Toplevel(self.master)
  
         # Pop Up window cuztomization
-        PopUpWindow(self.RMM_window, "Supprimer un membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y())
+        PopUpWindow(self.RMM_window, "Supprimer un membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
 
         # Widget in "Remove member" window
         self.RMM_combobox = ttk.Combobox(self.RMM_window, value=self.members_list, 
@@ -513,7 +513,7 @@ class GroupWindow:
 
         for i, mb in enumerate(self.members_list):
             
-            self.LF_members_button[i].config(text=mb, command=lambda mb=mb: self.RF_member_profile(mb))
+            self.LF_members_button[i].config(text=mb, command=lambda mb=mb: self.RF_display_member_profile_func(mb))
             self.LF_members_button[i].place(relx=0, rely=0.02 + i/20, relwidth=0.75, relheight=0.05)
             
             self.LF_members_entry[i].delete(0, "end")
@@ -536,20 +536,71 @@ class GroupWindow:
         """ Clear right frame """
         
         self.RF_expenses_of_label.place_forget()
-        self.RF_new_expense_button.place_forget()
+        self.RF_NE_main_button.place_forget()
+        self.RF_historical_button.place_forget()
         
-    def RF_member_profile(self, member):
+    def RF_display_member_profile_func(self, member):
         """ Display member profile in the right frame """
         
         self.RF_expenses_of_text.set("Dépenses de {}".format(member))
         self.RF_expenses_of_label.place(relx=0, rely=0.01, relwidth=1, relheight=0.05)
 
-        self.RF_new_expense_button.place(relx=0.125, rely=0.1, relwidth=0.25, relheight=0.05)
+        self.RF_NE_main_button.config(command=lambda member=member: self.RF_NE_main_button_func(member))
+        self.RF_NE_main_button.place(relx=0.125, rely=0.1, relwidth=0.25, relheight=0.05)
 
-        self.RF_historical_button.place(relx=0.6125, rely=0.1, relwidth=0.25, relheight=0.05)
+        self.RF_HIST_main_button.config(command=lambda member=member: self.RF_HIST_main_button_func(member))
+        self.RF_HIST_main_button.place(relx=0.6125, rely=0.1, relwidth=0.25, relheight=0.05)
     
+# ---------------------------------------- New expense part -----------------------------------------------------
     
+    def RF_NE_main_button_func(self, member):
+        """ Add a new expence (NE : New Expense)"""
 
+        self.RF_NE_window = tk.Toplevel(self.right_frame)
+
+        # PopUp window customization
+        PopUpWindow(self.RF_NE_window, "Nouvelle dépense de {}".format(member), GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), 
+                    self.master.winfo_y(), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
+
+        # Widgets
+        self.RF_NE_description_label = tk.Label(self.RF_NE_window, text="Description :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.RF_NE_description_label.place(relx=0.02, rely=0.05, relwidth=0.48, relheight=0.05)
+
+        self.RF_NE_description_entry = tk.Entry(self.RF_NE_window)
+        self.RF_NE_description_entry.place(relx=0.5, rely=0.05, relwidth=0.48, relheight=0.05)
+
+        self.RF_NE_amount_label = tk.Label(self.RF_NE_window, text="Montant (€) :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.RF_NE_amount_label.place(relx=0.02, rely=0.15, relwidth=0.48, relheight=0.05)
+
+        self.RF_NE_amount_entry = tk.Entry(self.RF_NE_window)
+        self.RF_NE_amount_entry.place(relx=0.5, rely=0.15, relwidth=0.48, relheight=0.05)
+
+        self.RF_NE_date_label = tk.Label(self.RF_NE_window, text="Date :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.RF_NE_date_label.place(relx=0.02, rely=0.25, relwidth=0.48, relheight=0.05)
+        
+        self.RF_NE_date_entry = DateEntry(self.RF_NE_window, date_pattern="dd/mm/y", locale="fr")
+        self.RF_NE_date_entry.place(relx=0.5, rely=0.25, relwidth=0.48, relheight=0.05)
+
+        self.RF_NE_type_label = tk.Label(self.RF_NE_window, text="Type :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.RF_NE_type_label.place(relx=0.02, rely=0.35, relwidth=0.48, relheight=0.05)
+
+        self.RF_NE_combobox = ttk.Combobox(self.RF_NE_window, value=TYPE_LIST, 
+                                           state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
+        self.RF_NE_combobox.place(relx=0.5, rely=0.35, relwidth=0.48, relheight=0.05)
+
+        self.RF_NE_secondary_button = tk.Button(self.RF_NE_window, text="AJOUTER")
+        self.RF_NE_secondary_button.place(relx=0.25, rely=0.45, relwidth=0.5, relheight=0.05)
+        
+# ---------------------------------------- Historical part -----------------------------------------------------
+
+    def RF_HIST_main_button_func(self, member):
+        """ Display historical """
+
+        self.RF_HIST_window = tk.Toplevel(self.right_frame)
+
+        # PopUp window customization
+        PopUpWindow(self.RF_HIST_window, "Historique de {}".format(member), GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), 
+                    self.master.winfo_y(), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
 
 
 if __name__ == "__main__":
