@@ -1,16 +1,19 @@
 """ Bill-Splitting App """
 
 import os
+import re
 import json
 import shutil
 import datetime
+import pandas as pd
 import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
 from constants import *
 
 
-# Folders and paths creation
+# -------------------------------------------- Folders and paths -----------------------------------------------------
+
 MAIN_PATH = os.path.dirname(os.path.realpath(__file__))
 SAVED_FILES_PATH = os.path.join(MAIN_PATH, "saved_files")
 if os.path.exists(SAVED_FILES_PATH) is False:
@@ -21,132 +24,94 @@ if os.path.exists(GROUPS_PATH) is False:
     os.mkdir(GROUPS_PATH)
 
 
-class PopUpWindow:
-    """ Pop Up window cuztomization """
+# -------------------------------------------- Transversal classes -----------------------------------------------------
 
-    def __init__(self, window, title, width_master, height_master, x_master, y_master, popup_width, popup_height):
-        """
-        window : a tkinter.TopLevel(master) window
-        title : pop up windwow title
-        width_master : master width
-        height_master : master height
-        x_master : master x position
-        y_master : master y_position
-        """
+class PopUpWindow(tk.Toplevel):
+    """ Pop up window """
 
-        self.window = window
+    def __init__(self, master, title, popup_width, popup_height):
+        tk.Toplevel.__init__(self, master)
 
         # Espace bind key
-        self.window.bind("<Escape>", lambda x: self.window.destroy())
+        self.bind("<Escape>", lambda x: self.destroy())
 
         # Window customization 
-        self.window.title(title)
-        self.window.geometry("{}x{}+{}+{}".format(popup_width, popup_height, 
-                                                  int(x_master + (width_master - popup_width)*0.5), 
-                                                  int(y_master + (height_master - popup_height)*0.3)))
-        self.window.minsize(popup_width, popup_height)
-        self.window.maxsize(popup_width, popup_height)
+        self.title(title)
+        self.geometry("{}x{}+{}+{}".format(popup_width, popup_height, 
+                                           int(master.winfo_x() + (master.winfo_width() - popup_width)*0.5), 
+                                           int(master.winfo_y() + (master.winfo_height() - popup_height)*0.3)))
+        self.minsize(popup_width, popup_height)
+        self.maxsize(popup_width, popup_height)
 
         # grab_set : disable main window while new window open
         # attributes('-topmost', True) : new window always in front
-        self.window.attributes('-topmost', True)
-        self.window.grab_set() 
+        self.attributes('-topmost', True)
+        self.grab_set() 
 
 
-class MenuWindow:
-    """ Menu Window """
+# -------------------------------------------- Menu Window classes -----------------------------------------------------
 
-    def __init__(self):
+class CreateGroup(tk.Button):
+    """ Create group part """
+    
+    def __init__(self, master):
+        tk.Button.__init__(self, master)
+        self.master = master
+        self.config(text="Créer un nouveau groupe")
+        self.config(font=("Helvetica", MW_BUTTON_FONT_SIZE, "bold"))
+        self.config(command=self.main_button_func)
 
-        self.master = tk.Tk()
-
-        # Master window customization
-        self.master.title("Partage des dépenses")
-        self.master.geometry("{}x{}+{}+{}".format(MW_WIDTH, MW_HEIGHT, MW_POS_X, MW_POS_Y))
-        self.master.minsize(MW_WIDTH, MW_HEIGHT)
-        self.master.maxsize(MW_WIDTH, MW_HEIGHT)
-        self.master.config(bg=GREEN)
-
-        # Master frame
-        self.frame_master = tk.Frame(self.master, width=MW_WIDTH*0.94, height=MW_HEIGHT*0.94, bg=GREEN)
-        self.frame_master.place(relx=0.03, rely=0.03)
-
-        # Master buttons
-        self.CREATE_main_button = tk.Button(self.frame_master, text="Créer un nouveau groupe", font=("Helvetica", MW_BUTTON_FONT_SIZE, "bold"),
-                                       command=self.CREATE_main_button_func)
-        self.CREATE_main_button.grid(row=0, column=0, sticky="w", pady=5)
-
-        self.REMOVE_main_button = tk.Button(self.frame_master, text="Supprimer un groupe", font=("Helvetica", MW_BUTTON_FONT_SIZE, "bold"),
-                                            command=self.REMOVE_main_button_func)
-        self.REMOVE_main_button.grid(row=1, column=0, sticky="w", pady=5)
-
-        self.SELECT_main_button = tk.Button(self.frame_master, text="Sélectionner un groupe", font=("Helvetica", MW_BUTTON_FONT_SIZE, "bold"),
-                                            command=self.SELECT_main_button_func)
-        self.SELECT_main_button.grid(row=2, column=0, sticky="w", pady=5)
+    def main_button_func(self):
         
-        # display
-        self.master.mainloop()
-
-# ------------------------------------- Create Group part --------------------------------------------
-
-    def CREATE_main_button_func(self):
-        """ Create a new group """
-
-        self.CREATE_window = tk.Toplevel(self.frame_master)
+        self.window = PopUpWindow(self.master.master, "Créer un nouveau groupe", PUW_WIDTH, PUW_HEIGHT)
         
-        # Pop Up window cuztomization
-        PopUpWindow(self.CREATE_window, "Créer un nouveau groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
+        # window widgets 
+        self.window.register = self.window.register(self.callback_func)
+        self.window.entry = tk.Entry(self.window, font=("Helvetica", PUW_ENTRY_FONT_SIZE), justify="center", validate="key", 
+                              validatecommand=(self.window.register, '%P'))
+        self.window.entry.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
+        self.window.entry.bind("<Return>", self.window_button_func)
 
-        # Pop Up window widgets 
-        self.CREATE_register = self.CREATE_window.register(self.CREATE_callback_func)
-        self.CREATE_entry = tk.Entry(self.CREATE_window, font=("Helvetica", PUW_ENTRY_FONT_SIZE), justify="center",
-                                     validate="key", validatecommand=(self.CREATE_register, '%P'))
-        self.CREATE_entry.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
-        self.CREATE_entry.bind("<Return>", self.CREATE_secondary_button_func)
+        self.window.button = tk.Button(self.window, text="AJOUTER", command=self.window_button_func)
+        self.window.button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
-        self.CREATE_secondary_button = tk.Button(self.CREATE_window, text="AJOUTER", command=self.CREATE_secondary_button_func)
-        self.CREATE_secondary_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
-
-        self.CREATE_already_exist_label = tk.Label(self.CREATE_window, text="Ce groupe existe déjà !",
-                                               font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
+        self.window.already_exist_label = tk.Label(self.window, text="Ce groupe existe déjà !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
         
-        self.CREATE_member_created_label = tk.Label(self.CREATE_window, text="Nouveau groupe créé !",
-                                                font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
+        self.window.member_created_label = tk.Label(self.window, text="Nouveau groupe créé !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
 
-        self.CREATE_invalid_name_label = tk.Label(self.CREATE_window, text="Nom invalide",
-                                               font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
+        self.window.invalid_name_label = tk.Label(self.window, text="Nom invalide", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
 
-    def CREATE_secondary_button_func(self, event=None):
+    def window_button_func(self, event=None):
         """ Add new group """ 
 
         # Check if group already exist
-        new_group = self.CREATE_entry.get()
+        new_group = self.window.entry.get()
         new_group_path = os.path.join(GROUPS_PATH, new_group)
 
         # clear entry
-        self.CREATE_entry.delete(0, "end")
+        self.window.entry.delete(0, "end")
 
         # Check if it is a valid name
         if not new_group:
-            self.CREATE_invalid_name_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.window.invalid_name_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
         # Check if member already exist
         if os.path.exists(new_group_path):
-            self.CREATE_secondary_button.place_forget()
-            self.CREATE_already_exist_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.window.button.place_forget()
+            self.window.already_exist_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
         # Create new group
         else:
             os.mkdir(new_group_path)
-            self.CREATE_secondary_button.place_forget()
-            self.CREATE_member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.window.button.place_forget()
+            self.window.member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
             # create members.txt file
             with open(os.path.join(new_group_path, "members.txt"), "w") as f:
                 pass
 
-    def CREATE_callback_func(self, input):
-        """ Callback function for CREATE_entry """
+    def callback_func(self, input):
+        """ Callback function for entry """
         
         if any(i in input for i in INVALID_CHAR):
             return False
@@ -155,269 +120,220 @@ class MenuWindow:
             return False
 
         else:
-            self.CREATE_invalid_name_label.place_forget()
-            self.CREATE_already_exist_label.place_forget()
-            self.CREATE_member_created_label.place_forget()
-            self.CREATE_secondary_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+            self.window.invalid_name_label.place_forget()
+            self.window.already_exist_label.place_forget()
+            self.window.member_created_label.place_forget()
+            self.window.button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
             return True
-    
-# ------------------------------------- Remove Group part --------------------------------------------
 
-    def REMOVE_main_button_func(self):
+
+class RemoveGroup(tk.Button):
+    """ Remove group part """
+
+    def __init__(self, master):
+        tk.Button.__init__(self, master)
+        self.master = master
+        self.config(text="Supprimer un groupe")
+        self.config(font=("Helvetica", MW_BUTTON_FONT_SIZE, "bold"))
+        self.config(command=self.main_button_func)       
+
+    def main_button_func(self):
         """ Remvove a group """
 
-        self.REMOVE_window = tk.Toplevel(self.master)
+        self.window = PopUpWindow(self.master.master, "Supprimer un groupe", PUW_WIDTH, PUW_HEIGHT)
 
-        # Pop Up window cuztomization
-        PopUpWindow(self.REMOVE_window, "Supprimer un groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
+        # window widgets
+        self.combobox = ttk.Combobox(self.window, value=sorted(os.listdir(GROUPS_PATH)), state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
+        self.combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
+        self.combobox.bind("<Button-1>", self.bind_func)
+        self.combobox.bind("<Return>", self.secondary_button_func)
 
-        # Pop Up window widgets
-        self.REMOVE_combobox = ttk.Combobox(self.REMOVE_window, value=sorted(os.listdir(GROUPS_PATH)), 
-                                            state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
-        self.REMOVE_combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
-        self.REMOVE_combobox.bind("<Button-1>", self.REMOVE_bind_func)
-        self.REMOVE_combobox.bind("<Return>", self.REMOVE_secondary_button_func)
+        self.secondary_button = tk.Button(self.window, text="SUPPRIMER", command=self.secondary_button_func)
+        self.secondary_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
-        self.REMOVE_secondary_button = tk.Button(self.REMOVE_window, text="SUPPRIMER", command=self.REMOVE_secondary_button_func)
-        self.REMOVE_secondary_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+        self.member_deleted_label = tk.Label(self.window, text="Groupe supprimé !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
 
-        self.REMOVE_member_deleted_label = tk.Label(self.REMOVE_window, text="Groupe supprimé !",
-                                                    font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
-
-    def REMOVE_secondary_button_func(self, event=None):
+    def secondary_button_func(self, event=None):
         """ Remove a group """
 
         # if combobox selected a group name
-        if self.REMOVE_combobox.get():
-            shutil.rmtree(os.path.join(GROUPS_PATH, self.REMOVE_combobox.get()))
-            self.REMOVE_member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
-            self.REMOVE_combobox.set("")
-            self.REMOVE_combobox.config(value=sorted(os.listdir(GROUPS_PATH)), state="readonly")
+        if self.combobox.get():
+            shutil.rmtree(os.path.join(GROUPS_PATH, self.combobox.get()))
+            self.member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.combobox.set("")
+            self.combobox.config(value=sorted(os.listdir(GROUPS_PATH)), state="readonly")
 
         # If no group, disable remove button 
         if len(os.listdir(GROUPS_PATH)) == 0:
-            self.REMOVE_secondary_button.config(state="disable")
+            self.secondary_button.config(state="disable")
 
-    def REMOVE_bind_func(self, event=None):
+    def bind_func(self, event=None):
         """ button 1 bind on 'remove window' """
 
-        self.REMOVE_member_deleted_label.place_forget()
-        self.REMOVE_secondary_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+        self.member_deleted_label.place_forget()
+        self.secondary_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
-# ------------------------------------- Select Group part --------------------------------------------
 
-    def SELECT_main_button_func(self):
+class SelectGroup(tk.Button):
+    """ Select group part """
+
+    def __init__(self, master):
+        tk.Button.__init__(self, master)
+        self.master = master
+        self.config(text="Sélectionner un groupe")
+        self.config(font=("Helvetica", MW_BUTTON_FONT_SIZE, "bold"))
+        self.config(command=self.main_button_func) 
+
+    def main_button_func(self):
         """ Select a group """
 
-        self.SELECT_window = tk.Toplevel(self.master)
+        self.window = PopUpWindow(self.master.master, "Selectionner un groupe", PUW_WIDTH, PUW_HEIGHT)
 
-        # Pop Up window cuztomization
-        PopUpWindow(self.SELECT_window, "Selectionner un groupe", MW_WIDTH, MW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
-
-        # Pop Up window widgets
-        self.SELECT_combobox = ttk.Combobox(self.SELECT_window, value=sorted(os.listdir(GROUPS_PATH)), 
+        # window widgets
+        self.combobox = ttk.Combobox(self.window, value=sorted(os.listdir(GROUPS_PATH)), 
                                             state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
-        self.SELECT_combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
-        self.SELECT_combobox.bind("<Return>", self.SELECT_secondary_button_func)
+        self.combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
+        self.combobox.bind("<Return>", self.secondary_button_func)
 
-        self.SELECT_secondary_button = tk.Button(self.SELECT_window, text="SELECTIONNER", command=self.SELECT_secondary_button_func)
-        self.SELECT_secondary_button.place(relx=0.35, rely=0.55, relwidth=0.30, relheight=0.40)
+        self.secondary_button = tk.Button(self.window, text="SELECTIONNER", command=self.secondary_button_func)
+        self.secondary_button.place(relx=0.35, rely=0.55, relwidth=0.30, relheight=0.40)
 
-    def SELECT_secondary_button_func(self, event=None):
+    def secondary_button_func(self, event=None):
         """ Open the group window """
 
-        group_selected = self.SELECT_combobox.get()
+        group_selected = self.combobox.get()
 
         # if combobox selected a group name
         if group_selected:
             
-            # create a file with the group selected name
-            with open(os.path.join(SAVED_FILES_PATH, "group_selected.txt"), "w") as f:
-                f.write(group_selected)
+            # create a global variable for selected group and selected group path
+            global GROUP_NAME
+            global GROUP_PATH
+            GROUP_NAME = group_selected
+            GROUP_PATH = os.path.join(GROUPS_PATH, GROUP_NAME)
 
-            # destroy menu window
-            self.master.destroy()
+            # make invisible menu window and destroy toplevelwindow
+            self.master.master.withdraw()
+            self.window.destroy()
 
             # launch group window
-            GroupWindow()
+            GroupWindow(self.master)
 
         if len(os.listdir(GROUPS_PATH)) == 0:
-            self.SELECT_secondary_button.config(state="disable")
+            self.secondary_button.config(state="disable")
 
 
-class GroupWindow:
-    """ Group Window """
+class MenuWindow(tk.Frame):
+    """ Menu Window """
 
-    def __init__(self):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        self.master = master
+        self.config(bg=GREEN)
+
+        # Classes
+        self.create_group = CreateGroup(self)
+        self.remove_group = RemoveGroup(self)
+        self.select_group = SelectGroup(self)
+
+        # Classes position
+        self.create_group.grid(row=0, column=0, sticky="w", padx=15, pady=(20, 5))
+        self.remove_group.grid(row=1, column=0, sticky="w", padx=15, pady=(5,5))
+        self.select_group.grid(row=2, column=0, sticky="w", padx=15, pady=(5,5))
+
+
+# ------------------------------------------- Group Window classes ----------------------------------------------------
+
+class OpenNewGroup(tk.Menu):
+    """ Open new group in the file menu """
+
+    def __init__(self, menu, master):
+        tk.Menu.__init__(self, menu)
+        self.master = master
+        self.menu = menu
+
+        self.menu.add_command(label="Ouvrir un nouveau groupe", command=self.main_func)
+
+    def main_func(self):
+        """ Close this window and make visible the menu window """
         
-        self.master = tk.Tk()
-        
-        # Get group name and path
-        with open(os.path.join(SAVED_FILES_PATH, "group_selected.txt"), "r") as f:
-            self.GROUP_NAME = f.readline()
-        self.GROUP_PATH = os.path.join(GROUPS_PATH, self.GROUP_NAME)
+        # Make visible menu window 
+        self.master.master.master.deiconify()
 
-        # Create members list 
-        try :
-            with open(os.path.join(self.GROUP_PATH, "members.txt"), "r") as f:
-                self.members_list = json.loads(f.read())
-        except:
-            self.members_list = []
-        
-        # Save member list while master window is closed
-        self.master.protocol("WM_DELETE_WINDOW", self.save_member_list_func)
-
-        # Master window customization
-        self.master.title("Groupe {}".format(self.GROUP_NAME))
-        self.master.geometry("{}x{}+{}+{}".format(GW_WIDTH, GW_HEIGHT, GW_POS_X, GW_POS_Y))
-        self.master.minsize(GW_WIDTH, GW_HEIGHT)
-        self.master.maxsize(GW_WIDTH, GW_HEIGHT)
-        self.master.config(bg="white")
-
-        # Menu bar
-        self.menu_bar = tk.Menu(self.master, bg="white", relief="flat")
-        
-        self.file_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
-        self.file_menu.add_command(label="Ouvrir un nouveau groupe", command=self.MENU_FILE_ONG_main_func)
-        self.menu_bar.add_cascade(label="Fichier", menu=self.file_menu)
-        
-        self.edit_menu = tk.Menu(self.menu_bar, tearoff=0, bg="white")
-        self.edit_menu.add_command(label="Ajouter un membre", command=self.MENU_EDIT_ANM_main_func)
-        self.edit_menu.add_command(label="Supprimer un membre", command=self.MENU_EDIT_RMM_main_func)
-        self.menu_bar.add_cascade(label="Édition", menu=self.edit_menu)
-        self.master.config(menu=self.menu_bar)
-
-        # Left frame (LF)
-        self.LF_members_button = []
-        self.LF_members_entry = []
-        self.LF_members_pourcent_label = []
-
-        self.left_frame = tk.Frame(self.master, width=GW_LEFT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
-                                   highlightthickness=1, bg=GREEN, padx=10, pady=10)
-        self.left_frame.grid(row=0, column=0)
-
-        self.LF_create_widgets_func(update=False)
-        self.LF_display_widgets_func()
-
-        self.LF_start_label = tk.Label(self.left_frame, text='Début :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
-        self.LF_start_label.place(relw=0, rely=0.80, relheight=0.04, relwidth=0.5)
-
-        self.LF_calendar_start_entry = DateEntry(self.left_frame, date_pattern="dd/mm/y", locale="fr")
-        self.LF_calendar_start_entry.place(relx=0.5, rely=0.80, relheight=0.04, relwidth=0.5)
-
-        self.LF_end_label = tk.Label(self.left_frame, text='Fin :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
-        self.LF_end_label.place(relw=0, rely=0.85, relheight=0.04, relwidth=0.5)
-
-        self.LF_calendar_end_entry = DateEntry(self.left_frame, date_pattern="dd/mm/y", locale="fr")
-        self.LF_calendar_end_entry.place(relx=0.5, rely=0.85, relheight=0.04, relwidth=0.5)
-
-        self.LF_calculate_button = tk.Button(self.left_frame, text="CALCULER", font=("Helvetica", GW_CALCULATE_BUTTON_FONT_SIZE, "bold"))
-        self.LF_calculate_button.place(relx=0, rely=0.9, relwidth=1, relheight=0.05)
-        
-        # Right frame (RF)
-        self.right_frame = tk.Frame(self.master, width=GW_RIGHT_FRAME_SIZE, height=GW_HEIGHT, highlightbackground="black",
-                                    highlightthickness=1, bg="white")
-        self.right_frame.grid(row=0, column=1)
-        
-        self.RF_expenses_of_text = tk.StringVar()
-        self.RF_expenses_of_label = tk.Label(self.right_frame, textvariable=self.RF_expenses_of_text, bg='white', 
-                                             font=("Helvetica", GW_EXPENSES_OF_LABEL_FONT_SIZE, "bold"))
-
-        self.RF_NE_main_button = tk.Button(self.right_frame, text="Nouvelle dépense") # NE : New Expense
-
-        self.RF_HIST_main_button = tk.Button(self.right_frame, text="Historique") # HIST : Historical
-        
-        # display
-        self.master.mainloop()
-
-# --------------------------------------------- Other functions -------------------------------------------------------
-
-    def save_member_list_func(self):
-        """ Save member list as members.txt """
-        
-        with open(os.path.join(self.GROUP_PATH, "members.txt"), "w") as f:
-            f.write(json.dumps(self.members_list))
-        
-        self.master.destroy()
-
-# --------------------------------------------- Menu part -------------------------------------------------------
-
-# ------------------------------------- Menu : File -> Open New Group --------------------------------------------
-
-    def MENU_FILE_ONG_main_func(self):
-        """ Close this window and open menu window  (ONG : Open New Group) """
-        
         # Quit group window
         self.master.destroy()
+
+
+class AddNewMember(tk.Menu):
+    """ Add a new member """
+
+    def __init__(self, menu, master):
+        tk.Menu.__init__(self, menu)
+        self.master = master
+        self.menu = menu
+
+        self.menu.add_command(label="Ajouter un membre", command=self.main_func)
+
+    def main_func(self):
+        """ Add a new member in the group """
+
+        self.window = PopUpWindow(self.master, "Créer un nouveau membre", PUW_WIDTH, PUW_HEIGHT)
         
-        # Open menu window
-        MenuWindow()
+        # Widget in window
+        self.register = self.window.register(self.callback_func)
+        self.entry = tk.Entry(self.window, font=("Helvetica", PUW_ENTRY_FONT_SIZE), justify="center", validate="key", 
+                              validatecommand=(self.register, '%P'))
+        self.entry.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
+        self.entry.bind("<Return>", self.button_func)
 
-# ------------------------------------- Menu : Edit -> Add New Member ---------------------------------------------
+        self.button = tk.Button(self.window, text="AJOUTER", command=self.button_func)
+        self.button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
-    def MENU_EDIT_ANM_main_func(self):
-        """ Add a new member in the group (ANM : Add New Member) """
-
-        self.ANM_window = tk.Toplevel(self.master)
+        self.already_exist_label = tk.Label(self.window, text="Ce membre existe déjà !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
         
-        # Pop Up window cuztomization
-        PopUpWindow(self.ANM_window, "Créer un nouveau membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
+        self.member_created_label = tk.Label(self.window, text="Nouveau membre créé !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
 
-        # Widget in "add member" window
-        self.ANM_register = self.ANM_window.register(self.MENU_EDIT_ANM_callback_func)
-        self.ANM_entry = tk.Entry(self.ANM_window, font=("Helvetica", PUW_ENTRY_FONT_SIZE), justify="center",
-                                  validate="key", validatecommand=(self.ANM_register, '%P'))
-        self.ANM_entry.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
-        self.ANM_entry.bind("<Return>", self.MENU_EDIT_ANM_button_func)
+        self.invalid_name_label = tk.Label(self.window, text="Nom invalide", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
 
-        self.ANM_button = tk.Button(self.ANM_window, text="AJOUTER", command=self.MENU_EDIT_ANM_button_func)
-        self.ANM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+        self.too_many_members_label = tk.Label(self.window, text="Trop de membres (max. 12)", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
 
-        self.ANM_already_exist_label = tk.Label(self.ANM_window, text="Ce membre existe déjà !",
-                                               font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
-        
-        self.ANM_member_created_label = tk.Label(self.ANM_window, text="Nouveau membre créé !",
-                                                font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
-
-        self.ANM_invalid_name_label = tk.Label(self.ANM_window, text="Nom invalide",
-                                               font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
-
-        self.ANM_too_many_members_label = tk.Label(self.ANM_window, text="Trop de membres (max. 12)",
-                                                  font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
-
-    def MENU_EDIT_ANM_button_func(self, event=None):
+    def button_func(self, event=None):
         """ Add new member """ 
 
-        new_member = self.ANM_entry.get()
-        new_member_path = os.path.join(self.GROUP_PATH, "{}.csv".format(new_member))
+        new_member = self.entry.get()
+        new_member_path = os.path.join(GROUP_PATH, "{}.csv".format(new_member))
 
         # clear entry and make button invisible
-        self.ANM_entry.delete(0, "end")
-        self.ANM_button.place_forget()
-
+        self.entry.delete(0, "end")
+        self.button.place_forget()
+        
         # Check if there is more than 12 members
-        if len(self.members_list) > 12:
-            self.ANM_too_many_members_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+        if len(self.master.members_list) > 12:
+            self.too_many_members_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
         # Check if it is a valid name
         elif not new_member:
-            self.ANM_invalid_name_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.invalid_name_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
 
         # Check if member already exist
-        elif os.path.exists(new_member_path):
-            self.ANM_already_exist_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+        elif new_member in self.master.members_list:
+            self.already_exist_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
     
         # Create new member
         else:
             with open(new_member_path, 'w') as f:
                 pass
-            self.members_list.append(new_member)
-            self.ANM_member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
-            self.LF_create_widgets_func(update=True, add=True)
-            self.LF_display_widgets_func()
-        
-    def MENU_EDIT_ANM_callback_func(self, input):
-        """ Callback function for ANM_entry """
+            self.master.members_list.append(new_member)
+            self.member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            
+            # Update member left frame widgets
+            self.master.left_frame.create_member_rows()
+
+            # hide widgets on right frame
+            self.master.right_frame.hide_widget()
+
+    def callback_func(self, input):
+        """ Callback function """
         
         if any(i in input for i in INVALID_CHAR):
             return False
@@ -426,182 +342,350 @@ class GroupWindow:
             return False
 
         else:
-            self.ANM_invalid_name_label.place_forget()
-            self.ANM_already_exist_label.place_forget()
-            self.ANM_member_created_label.place_forget()
-            self.ANM_too_many_members_label.place_forget()
-            self.ANM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+            self.invalid_name_label.place_forget()
+            self.already_exist_label.place_forget()
+            self.member_created_label.place_forget()
+            self.too_many_members_label.place_forget()
+            self.button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
             return True
-    
-# ------------------------------------- Menu : Edit -> Remove Member ---------------------------------------------
 
-    def MENU_EDIT_RMM_main_func(self):
-        """ Remove a member (RMM : ReMove Member) """
 
-        self.RMM_window = tk.Toplevel(self.master)
+class RemoveMember(tk.Menu):
+    """ Remove a member """
+
+    def __init__(self, menu, master):
+        tk.Menu.__init__(self, menu)
+        self.master = master
+        self.menu = menu
+
+        self.menu.add_command(label="Supprimer un membre", command=self.main_func)
+
+    def main_func(self):
+        """ Remove a group member """
+
+        self.window = PopUpWindow(self.master, "Supprimer un membre", PUW_WIDTH, PUW_HEIGHT)
  
-        # Pop Up window cuztomization
-        PopUpWindow(self.RMM_window, "Supprimer un membre", GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), self.master.winfo_y(), PUW_WIDTH, PUW_HEIGHT)
+        # Widget in window
+        self.combobox = ttk.Combobox(self.window, value=self.master.members_list, state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
+        self.combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
+        self.combobox.bind("<Button-1>", self.bind_func)
+        self.combobox.bind("<Return>", self.button_func)
 
-        # Widget in "Remove member" window
-        self.RMM_combobox = ttk.Combobox(self.RMM_window, value=self.members_list, 
-                                         state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
-        self.RMM_combobox.place(relx=0.05, rely=0.05, relwidth=0.90, relheight=0.45)
-        self.RMM_combobox.bind("<Button-1>", self.MENU_EDIT_RMM_bind_func)
-        self.RMM_combobox.bind("<Return>", self.MENU_EDIT_RMM_button_func)
+        self.button = tk.Button(self.window, text="SUPPRIMER", command=self.button_func)
+        self.button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
-        self.RMM_button = tk.Button(self.RMM_window, text="SUPPRIMER", command=self.MENU_EDIT_RMM_button_func)
-        self.RMM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+        self.member_deleted_label = tk.Label(self.window, text="Membre supprimé !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")  
 
-        self.RMM_member_deleted_label = tk.Label(self.RMM_window, text="Membre supprimé !",
-                                                 font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
-
-    def MENU_EDIT_RMM_button_func(self, event=None):
+    def button_func(self, event=None):
         """ Remove a member """
 
         # if combobox selected a group name
-        if self.RMM_combobox.get():
-            os.remove(os.path.join(self.GROUP_PATH, "{}.csv".format(self.RMM_combobox.get())))
-            self.LF_make_invisible_widgets_func() # must be placed before member_list.remove
-            self.members_list.remove(self.RMM_combobox.get())
-            self.RMM_member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
-            self.RMM_combobox.set("")
-            self.RMM_combobox.config(value=self.members_list)
-            self.LF_create_widgets_func(update=True, add=False)
-            self.LF_display_widgets_func()
+        if self.combobox.get():
+
+            # remove member csv
+            os.remove(os.path.join(GROUP_PATH, "{}.csv".format(self.combobox.get())))
+            
+            # remove member from members_list
+            self.master.members_list.remove(self.combobox.get())
+            
+            # display changes on top level window
+            self.member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
+            self.combobox.set("")
+            self.combobox.config(value=self.master.members_list)
+            
+            # remove member from left frame widgets
+            self.master.left_frame.create_member_rows()
+            
+            # hide widgets on right frame
+            self.master.right_frame.hide_widget()
 
         # If no group, disable remove button 
-        # 1 because of members.txt
-        if len(os.listdir(self.GROUP_PATH)) == 1:
-            self.RMM_button.config(state="disable")
+        if len(self.master.members_list) == 0:
+            self.button.config(state="disable")
 
-    def MENU_EDIT_RMM_bind_func(self, event=None):
+    def bind_func(self, event=None):
         """ button 1 bind on 'remove window' """
 
-        self.RMM_member_deleted_label.place_forget()
-        self.RMM_button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
+        self.member_deleted_label.place_forget()
+        self.button.place(relx=0.40, rely=0.55, relwidth=0.20, relheight=0.40)
 
-# ---------------------------------------- Left Frame -----------------------------------------------------
 
-    def LF_create_widgets_func(self, update=True, add=True):
-        """ A function to create left frame widgets """
+class EditMenu(tk.Menu):
+    """ File Menu in the menu bar"""
 
-        if update:
-            if add:
-                self.LF_members_button.append(tk.Button(self.left_frame, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"),
-                                                relief="flat", anchor="w", bg=GREEN, highlightthickness=0))
-                self.LF_members_entry.append(tk.Entry(self.left_frame))
-                self.LF_members_pourcent_label.append(tk.Label(self.left_frame, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE)))
-            else:
-                self.LF_members_button.pop()
-                self.LF_members_entry.pop()
-                self.LF_members_pourcent_label.pop()     
+    def __init__(self, menu, master):
+        tk.Menu.__init__(self, menu)
+        self.master = master
+        self.menu = menu
+        self.config(tearoff=0)
+        self.config(bg="white")
+
+        # Commands in edit menu
+        AddNewMember(self, self.master)
+        RemoveMember(self, self.master)
+
+
+class FileMenu(tk.Menu):
+    """ File Menu in the menu bar"""
+
+    def __init__(self, menu, master):
+        tk.Menu.__init__(self, menu)
+        self.master = master
+        self.menu = menu
+        self.config(tearoff=0)
+        self.config(bg="white")
+
+        # Commands in file menu
+        OpenNewGroup(self, self.master)
+
+
+class MenuBar(tk.Menu):
+    """ Menu Bar part """
+
+    def __init__(self, master):
+        tk.Menu.__init__(self, master)
+        self.master = master
+        self.config(bg="white")
+        self.config(relief="flat")
+
+        # Cascade
+        self.add_cascade(label="Ficher", menu=FileMenu(self, self.master))
+        self.add_cascade(label="Édition", menu=EditMenu(self, self.master))
+
+
+class LeftFrame(tk.Frame):
+    """ Left Frame Container """
+    
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        self.master = master
+        self.config(width=GW_LEFT_FRAME_SIZE)
+        self.config(highlightbackground="black", highlightthickness=1)
+        self.config(bg=GREEN)
+        self.config(padx=10, pady=10)
+
+        self.create_member_rows()
+
+        self.calculate_part = CalculatePart(self)
+        self.calculate_part.place(relx=0, rely=0.85, relwidth=1, relheight=0.15)
+
+    def create_member_rows(self):
+        """ A function to create members widget """
         
+        # Clean members_widget_list
+        for widget in self.master.members_widget_list:
+            widget.destroy()
+
+        # Fill members_widget_list
+        self.master.members_widget_list = []
+        for member in self.master.members_list:
+            self.master.members_widget_list.append(MemberRow(self, member))
+        
+        self._display_member_rows()
+
+    def _display_member_rows(self):
+        """ A function to display members widget """
+
+        for i, member in enumerate(self.master.members_list):
+            self.master.members_widget_list[i].entry.delete(0, "end")
+            self.master.members_widget_list[i].entry.insert(0, int(100/len(self.master.members_list)))
+
+            self.master.members_widget_list[i].pack()
+
+
+class MemberRow(tk.Frame):
+    """ Member name + member entry + pourcent label """
+
+    def __init__(self, master, member):
+        tk.Frame.__init__(self, master)
+        self.master = master
+        self.config(width=GW_LEFT_FRAME_SIZE, height=GW_MEMBER_ROW_HEIGHT)
+        self.config(bg=GREEN)
+        
+        self.button = tk.Button(self, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"), relief="flat", 
+                                anchor="w", bg=GREEN, highlightthickness=0, text=member, command=lambda m=member: self.main_func(m))
+        self.entry = tk.Entry(self)
+        self.pourcent_label = tk.Label(self, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE))
+
+        self.button.place(relx=0, rely=0, relwidth=0.75, relheight=1)
+        self.entry.place(relx=0.75, rely=0.1, relwidth=0.15, relheight=0.8)
+        self.pourcent_label.place(relx=0.9, rely=0.2, relwidth=0.1, relheight=0.8)
+
+    def main_func(self, member):
+        """ Display right frame widgets """
+
+        # Background button while it is selected
+        for widget in self.master.master.members_widget_list:
+            widget.button.config(bg=GREEN)
+        self.button.config(bg="white")
+
+        # Display new expense button on the right frame
+        if member[0].lower() in ["a", "e", "i", "o", "u", "y"]:
+            self.master.master.right_frame.new_expense_button.config(text="Nouvelle dépense d'{}".format(member))
         else:
-            for _ in range(len(self.members_list)):
+            self.master.master.right_frame.new_expense_button.config(text="Nouvelle dépense de {}".format(member))
 
-                self.LF_members_button.append(tk.Button(self.left_frame, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"),
-                                                relief="flat", anchor="w", bg=GREEN, highlightthickness=0))
-                self.LF_members_entry.append(tk.Entry(self.left_frame))
-                self.LF_members_pourcent_label.append(tk.Label(self.left_frame, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE)))
+        self.master.master.right_frame.new_expense_button.pack(fill="x")
+
+
+class NewExpense(tk.Button):
+    """ New expense button on right frame """
+
+    def __init__(self, master):
+        tk.Button.__init__(self, master)
+        self.master = master
+        self.config(font=("Helvetica", GW_NEW_EXPENSE_BUTTON_FONT_SIZE, "bold"))
+        self.config(command=self.main_func)
     
-    def LF_display_widgets_func(self):
-        """ A function to display the left frame widgets """
+    def main_func(self):
+        """ Create a pop up window to add an expense """
 
-        if len(self.members_list) > 0:
-            pourcent = int(100/len(self.members_list))
+        member = re.split(r"\'|\s", self.cget("text"))[-1]
 
-        for i, mb in enumerate(self.members_list):
-            
-            self.LF_members_button[i].config(text=mb, command=lambda mb=mb: self.RF_display_member_profile_func(mb))
-            self.LF_members_button[i].place(relx=0, rely=0.02 + i/20, relwidth=0.75, relheight=0.05)
-            
-            self.LF_members_entry[i].delete(0, "end")
-            self.LF_members_entry[i].insert(0, pourcent)
-            self.LF_members_entry[i].place(relx=0.75, rely=0.025 + i/20, relwidth=0.15, relheight=0.04)
+        # Create pop up window
+        self.window = PopUpWindow(self.master.master, "Nouvelle dépense de {}".format(member), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
 
-            self.LF_members_pourcent_label[i].place(relx=0.9, rely=0.03 + i/20, relwidth=0.1, relheight=0.04)
+        # Create widgets
+        self.window.description_label = tk.Label(self.window, text="Description :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.window.description_entry = tk.Entry(self.window, font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
+        self.window.amount_label = tk.Label(self.window, text="Montant (€) :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.window.amount_entry = tk.Entry(self.window, font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
+        self.window.date_label = tk.Label(self.window, text="Date :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.window.date_entry = DateEntry(self.window, date_pattern="dd/mm/y", locale="fr", font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
+        self.window.type_label = tk.Label(self.window, text="Type :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
+        self.window.combobox = ttk.Combobox(self.window, value=TYPE_LIST, state="readonly", font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
+        self.window.ticketrestau_checkbutton = tk.Checkbutton(self.window, text="Payé en ticket restaurant", anchor="w")
+        self.window.nottakeintoaccount_checkbutton = tk.Checkbutton(self.window, text="Ne pas prendre en compte lors des calculs")
+        self.window.button = tk.Button(self.window, text="AJOUTER")
 
-    def LF_make_invisible_widgets_func(self):
-        """ A function to make invisible the removed left frame widgets """
+        # Place widgets
+        relx_left = 0.02
+        relx_right = 0.5
+        rely_bonus = 0.03
+        relwidth=0.48
+        relheight = 0.1
+        self.window.description_label.place(relx=relx_left, rely=rely_bonus, relwidth=relwidth, relheight=relheight)
+        self.window.description_entry.place(relx=relx_right, rely=rely_bonus, relwidth=relwidth, relheight=relheight)
+        self.window.amount_label.place(relx=relx_left, rely=rely_bonus*2+relheight, relwidth=relwidth, relheight=relheight)
+        self.window.amount_entry.place(relx=relx_right, rely=rely_bonus*2+relheight, relwidth=relwidth, relheight=relheight)
+        self.window.date_label.place(relx=relx_left, rely=rely_bonus*3+relheight*2, relwidth=relwidth, relheight=relheight)
+        self.window.date_entry.place(relx=relx_right, rely=rely_bonus*3+relheight*2, relwidth=relwidth, relheight=relheight)
+        self.window.type_label.place(relx=relx_left, rely=rely_bonus*4+relheight*3, relwidth=relwidth, relheight=relheight)
+        self.window.combobox.place(relx=relx_right, rely=rely_bonus*4+relheight*3, relwidth=relwidth, relheight=relheight)
+        self.window.ticketrestau_checkbutton.place(relx=relx_left, rely=rely_bonus*7+relheight*4, relheight=relheight)
+        self.window.nottakeintoaccount_checkbutton.place(relx=relx_left, rely=rely_bonus*7+relheight*5, relheight=relheight)
+        self.window.button.place(relx=0.3, rely=rely_bonus*8+relheight*6, relwidth=0.4, relheight=relheight*1.2)
+
+
+class CalculatePart(tk.Frame):
+    """ Calculate Part at the bottom of the left frame """
+
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        self.master = master
+        self.config(width=GW_LEFT_FRAME_SIZE, height=GW_CALCULATE_PART_HEIGHT)
+        self.config(bg=GREEN)
+
+        self.start_label = tk.Label(self, text='Début :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
+        self.calendar_start_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr")
+        self.end_label = tk.Label(self, text='Fin :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
+        self.calendar_end_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr")
+        self.calculate_button = tk.Button(self, text="CALCULER", font=("Helvetica", GW_CALCULATE_BUTTON_FONT_SIZE, "bold"))
+
+        self.start_label.place(relx=0, rely=0, relwidth=0.5, relheight=0.25)
+        self.calendar_start_entry.place(relx=0.5, rely=0, relwidth=0.5, relheight=0.25)
+        self.end_label.place(relx=0, rely=0.30, relwidth=0.5, relheight=0.25)
+        self.calendar_end_entry.place(relx=0.5, rely=0.30, relwidth=0.5, relheight=0.25)
+        self.calculate_button.place(relx=0, rely=0.65, relwidth=1, relheight=0.35)      
         
-        if len(self.members_list) > 0:
-            self.LF_members_button[-1].place_forget()
-            self.LF_members_entry[-1].place_forget()
-            self.LF_members_pourcent_label[-1].place_forget()
 
-# ---------------------------------------- Right Frame -----------------------------------------------------
+class RightFrame(tk.Frame):
 
-    def RF_clear_func(self):
-        """ Clear right frame """
-        
-        self.RF_expenses_of_label.place_forget()
-        self.RF_NE_main_button.place_forget()
-        self.RF_historical_button.place_forget()
-        
-    def RF_display_member_profile_func(self, member):
-        """ Display member profile in the right frame """
-        
-        self.RF_expenses_of_text.set("Dépenses de {}".format(member))
-        self.RF_expenses_of_label.place(relx=0, rely=0.01, relwidth=1, relheight=0.05)
-
-        self.RF_NE_main_button.config(command=lambda member=member: self.RF_NE_main_button_func(member))
-        self.RF_NE_main_button.place(relx=0.125, rely=0.1, relwidth=0.25, relheight=0.05)
-
-        self.RF_HIST_main_button.config(command=lambda member=member: self.RF_HIST_main_button_func(member))
-        self.RF_HIST_main_button.place(relx=0.6125, rely=0.1, relwidth=0.25, relheight=0.05)
-    
-# ---------------------------------------- New expense part -----------------------------------------------------
-    
-    def RF_NE_main_button_func(self, member):
-        """ Add a new expence (NE : New Expense)"""
-
-        self.RF_NE_window = tk.Toplevel(self.right_frame)
-
-        # PopUp window customization
-        PopUpWindow(self.RF_NE_window, "Nouvelle dépense de {}".format(member), GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), 
-                    self.master.winfo_y(), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        self.master = master
+        self.config(width=GW_RIGHT_FRAME_SIZE)
+        self.config(highlightbackground="black", highlightthickness=1)
+        self.config(bg="white")
 
         # Widgets
-        self.RF_NE_description_label = tk.Label(self.RF_NE_window, text="Description :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
-        self.RF_NE_description_label.place(relx=0.02, rely=0.05, relwidth=0.48, relheight=0.05)
+        self.new_expense_button = NewExpense(self)
 
-        self.RF_NE_description_entry = tk.Entry(self.RF_NE_window)
-        self.RF_NE_description_entry.place(relx=0.5, rely=0.05, relwidth=0.48, relheight=0.05)
+    def hide_widget(self):
+        """ Hide right frame widgets """
 
-        self.RF_NE_amount_label = tk.Label(self.RF_NE_window, text="Montant (€) :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
-        self.RF_NE_amount_label.place(relx=0.02, rely=0.15, relwidth=0.48, relheight=0.05)
+        for widget in self.winfo_children():
+            widget.pack_forget()
 
-        self.RF_NE_amount_entry = tk.Entry(self.RF_NE_window)
-        self.RF_NE_amount_entry.place(relx=0.5, rely=0.15, relwidth=0.48, relheight=0.05)
 
-        self.RF_NE_date_label = tk.Label(self.RF_NE_window, text="Date :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
-        self.RF_NE_date_label.place(relx=0.02, rely=0.25, relwidth=0.48, relheight=0.05)
+class GroupWindow(tk.Toplevel):
+    """ Group Window """
+
+    def __init__(self, master):
+        tk.Toplevel.__init__(self, master)
+        self.master = master
+
+        # Close app if group window is close
+        self.protocol("WM_DELETE_WINDOW", self.close_window_func)
+
+        # Create members list 
+        try :
+            with open(os.path.join(GROUP_PATH, "members.txt"), "r") as f:
+                self.members_list = json.loads(f.read())
+        except:
+            self.members_list = []
         
-        self.RF_NE_date_entry = DateEntry(self.RF_NE_window, date_pattern="dd/mm/y", locale="fr")
-        self.RF_NE_date_entry.place(relx=0.5, rely=0.25, relwidth=0.48, relheight=0.05)
+        # Create members widget list
+        self.members_widget_list = []
+    
+        # Window customization 
+        self.title("Groupe {}".format(GROUP_NAME))
+        self.geometry("{}x{}+{}+{}".format(GW_WIDTH, GW_HEIGHT, GW_POS_X, GW_POS_Y))
+        self.minsize(GW_WIDTH, GW_HEIGHT)
+        self.maxsize(GW_WIDTH, GW_HEIGHT)
+        self.config(bg="white")
 
-        self.RF_NE_type_label = tk.Label(self.RF_NE_window, text="Type :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
-        self.RF_NE_type_label.place(relx=0.02, rely=0.35, relwidth=0.48, relheight=0.05)
+        # Classes
+        self.left_frame = LeftFrame(self)
+        self.right_frame = RightFrame(self)
+        self.menu_bar = MenuBar(self)
 
-        self.RF_NE_combobox = ttk.Combobox(self.RF_NE_window, value=TYPE_LIST, 
-                                           state="readonly", font=("Helvetica", PUW_ENTRY_FONT_SIZE))
-        self.RF_NE_combobox.place(relx=0.5, rely=0.35, relwidth=0.48, relheight=0.05)
+        # Classes position
+        self.config(menu=self.menu_bar)
+        self.left_frame.pack(side="left", fill="y")
+        self.left_frame.pack_propagate(0)
+        self.right_frame.pack(side="right", fill="y")
+        self.right_frame.pack_propagate(0)
 
-        self.RF_NE_secondary_button = tk.Button(self.RF_NE_window, text="AJOUTER")
-        self.RF_NE_secondary_button.place(relx=0.25, rely=0.45, relwidth=0.5, relheight=0.05)
+
+    def close_window_func(self):
+        """ Actions while group window is closed """
+
+        # save members list as members.txt
+        with open(os.path.join(GROUP_PATH, "members.txt"), "w") as f:
+            f.write(json.dumps(self.members_list))
         
-# ---------------------------------------- Historical part -----------------------------------------------------
+        # close app
+        self.master.master.destroy()
 
-    def RF_HIST_main_button_func(self, member):
-        """ Display historical """
 
-        self.RF_HIST_window = tk.Toplevel(self.right_frame)
+# ------------------------------------------------ Launcher ---------------------------------------------------------
 
-        # PopUp window customization
-        PopUpWindow(self.RF_HIST_window, "Historique de {}".format(member), GW_WIDTH, GW_HEIGHT, self.master.winfo_x(), 
-                    self.master.winfo_y(), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
+def main():
+    master = tk.Tk()
+
+    # Master Menu Window Customization
+    master.title("Partage des dépenses")
+    master.geometry("{}x{}+{}+{}".format(MW_WIDTH, MW_HEIGHT, MW_POS_X, MW_POS_Y))
+    master.minsize(MW_WIDTH, MW_HEIGHT)
+    master.maxsize(MW_WIDTH, MW_HEIGHT)
+
+    MenuWindow(master).pack(expand=True, fill="both")
+    master.mainloop()
 
 
 if __name__ == "__main__":
-    MenuWindow()
+    main()
+
+
+
