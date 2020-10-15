@@ -321,8 +321,6 @@ class AddNewMember(tk.Menu):
     
         # Create new member
         else:
-            with open(new_member_path, 'w') as f:
-                pass
             self.master.members_list.append(new_member)
             self.member_created_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
             
@@ -379,14 +377,16 @@ class RemoveMember(tk.Menu):
     def button_func(self, event=None):
         """ Remove a member """
 
-        # if combobox selected a group name
-        if self.combobox.get():
+        removed_member = self.combobox.get()
 
-            # remove member csv
-            os.remove(os.path.join(GROUP_PATH, "{}.csv".format(self.combobox.get())))
+        # if combobox selected a group name
+        if removed_member:
             
+            # remove member row
+            self.master.data = self.master.data.loc[self.master.data.member != removed_member, :]
+        
             # remove member from members_list
-            self.master.members_list.remove(self.combobox.get())
+            self.master.members_list.remove(removed_member)
             
             # display changes on top level window
             self.member_deleted_label.place(relx=0.10, rely=0.55, relwidth=0.80, relheight=0.40)
@@ -628,15 +628,25 @@ class GroupWindow(tk.Toplevel):
         # Close app if group window is close
         self.protocol("WM_DELETE_WINDOW", self.close_window_func)
 
-        # Create members list 
+        # Create members list
         try :
             with open(os.path.join(GROUP_PATH, "members.txt"), "r") as f:
                 self.members_list = json.loads(f.read())
+            
         except:
             self.members_list = []
         
+        # Load data
+        try:
+            self.data = pd.read_csv(os.path.join(GROUP_PATH, "data.csv"))
+        except :
+            self.data = pd.DataFrame(columns=["member","description", "amount", "date", "type", "ticket_restau", "not_take_into_account"])
+
         # Create members widget list
         self.members_widget_list = []
+
+        # Load group data
+
     
         # Window customization 
         self.title("Groupe {}".format(GROUP_NAME))
@@ -664,6 +674,9 @@ class GroupWindow(tk.Toplevel):
         # save members list as members.txt
         with open(os.path.join(GROUP_PATH, "members.txt"), "w") as f:
             f.write(json.dumps(self.members_list))
+
+        # save data as data.csv
+        self.data.to_csv(os.path.join(GROUP_PATH, "data.csv"), index=False)
         
         # close app
         self.master.master.destroy()
