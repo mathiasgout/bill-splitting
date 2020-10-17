@@ -9,6 +9,7 @@ import pandas as pd
 import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
+from collections import Counter
 from constants import *
 
 
@@ -540,41 +541,111 @@ class NewExpense(tk.Button):
     def main_func(self):
         """ Create a pop up window to add an expense """
 
-        member = re.split(r"\'|\s", self.cget("text"))[-1]
+        self.member = re.split(r"\'|\s", self.cget("text"))[-1]
 
         # Create pop up window
-        self.window = PopUpWindow(self.master.master, "Nouvelle dépense de {}".format(member), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
+        self.window = PopUpWindow(self.master.master, "Nouvelle dépense de {}".format(self.member), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
+
+        # Bind
+        self.window.bind("<Return>", self.button_func)
+        self.window.bind("<Button-1>", self.bind_func)
 
         # Create widgets
         self.window.description_label = tk.Label(self.window, text="Description :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
         self.window.description_entry = tk.Entry(self.window, font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
         self.window.amount_label = tk.Label(self.window, text="Montant (€) :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
-        self.window.amount_entry = tk.Entry(self.window, font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
+        self.window.amount_register = self.window.register(self.callback_amount_func)
+        self.window.amount_entry = tk.Entry(self.window, font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE), validatecommand=(self.window.amount_register, '%P'), validate="key")
         self.window.date_label = tk.Label(self.window, text="Date :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
-        self.window.date_entry = DateEntry(self.window, date_pattern="dd/mm/y", locale="fr", font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
+        self.window.date_entry = DateEntry(self.window, date_pattern="dd/mm/y", locale="fr", font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE), state="readonly")
         self.window.type_label = tk.Label(self.window, text="Type :", anchor="w", font=("Helvetica", PUW_LABEL_FONT_SIZE, "bold"))
         self.window.combobox = ttk.Combobox(self.window, value=TYPE_LIST, state="readonly", font=("Helvetica", PUW_BIG_ENTRY_FONT_SIZE))
-        self.window.ticketrestau_checkbutton = tk.Checkbutton(self.window, text="Payé en ticket restaurant", anchor="w")
-        self.window.nottakeintoaccount_checkbutton = tk.Checkbutton(self.window, text="Ne pas prendre en compte lors des calculs")
-        self.window.button = tk.Button(self.window, text="AJOUTER")
+        self.window.ticketrestau_value = tk.BooleanVar()
+        self.window.ticketrestau_checkbutton = tk.Checkbutton(self.window, text="Payé en ticket restaurant", anchor="w", var=self.window.ticketrestau_value)
+        self.window.nottakeintoaccount_value = tk.BooleanVar()
+        self.window.nottakeintoaccount_checkbutton = tk.Checkbutton(self.window, text="Ne pas prendre en compte lors des calculs", var=self.window.nottakeintoaccount_value)
+        self.window.button = tk.Button(self.window, text="AJOUTER", command=self.button_func)
+        self.window.unvalid_label = tk.Label(self.window, text="Erreur de saisi !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="red")
+        self.window.expense_added_label = tk.Label(self.window, text="Nouvelle dépense ajouté !", font=("Helvetica", PUW_LABEL_FONT_SIZE), fg="green")
+
+        # Config widgets
+        self.nb_expenses = self.master.master.data.loc[self.master.master.data.member == self.member].shape[0] + 1
+        self.window.description_entry.insert(0, "Dépense {}".format(self.nb_expenses))
+        self.window.combobox.set("<AUTRE>")
 
         # Place widgets
-        relx_left = 0.02
-        relx_right = 0.5
-        rely_bonus = 0.03
-        relwidth=0.48
-        relheight = 0.1
-        self.window.description_label.place(relx=relx_left, rely=rely_bonus, relwidth=relwidth, relheight=relheight)
-        self.window.description_entry.place(relx=relx_right, rely=rely_bonus, relwidth=relwidth, relheight=relheight)
-        self.window.amount_label.place(relx=relx_left, rely=rely_bonus*2+relheight, relwidth=relwidth, relheight=relheight)
-        self.window.amount_entry.place(relx=relx_right, rely=rely_bonus*2+relheight, relwidth=relwidth, relheight=relheight)
-        self.window.date_label.place(relx=relx_left, rely=rely_bonus*3+relheight*2, relwidth=relwidth, relheight=relheight)
-        self.window.date_entry.place(relx=relx_right, rely=rely_bonus*3+relheight*2, relwidth=relwidth, relheight=relheight)
-        self.window.type_label.place(relx=relx_left, rely=rely_bonus*4+relheight*3, relwidth=relwidth, relheight=relheight)
-        self.window.combobox.place(relx=relx_right, rely=rely_bonus*4+relheight*3, relwidth=relwidth, relheight=relheight)
-        self.window.ticketrestau_checkbutton.place(relx=relx_left, rely=rely_bonus*7+relheight*4, relheight=relheight)
-        self.window.nottakeintoaccount_checkbutton.place(relx=relx_left, rely=rely_bonus*7+relheight*5, relheight=relheight)
-        self.window.button.place(relx=0.3, rely=rely_bonus*8+relheight*6, relwidth=0.4, relheight=relheight*1.2)
+        self.relx_left = 0.02
+        self.relx_right = 0.5
+        self.rely_bonus = 0.03
+        self.relwidth=0.48
+        self.relheight = 0.1
+        self.window.description_label.place(relx=self.relx_left, rely=self.rely_bonus, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.description_entry.place(relx=self.relx_right, rely=self.rely_bonus, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.amount_label.place(relx=self.relx_left, rely=self.rely_bonus*2+self.relheight, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.amount_entry.place(relx=self.relx_right, rely=self.rely_bonus*2+self.relheight, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.date_label.place(relx=self.relx_left, rely=self.rely_bonus*3+self.relheight*2, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.date_entry.place(relx=self.relx_right, rely=self.rely_bonus*3+self.relheight*2, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.type_label.place(relx=self.relx_left, rely=self.rely_bonus*4+self.relheight*3, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.combobox.place(relx=self.relx_right, rely=self.rely_bonus*4+self.relheight*3, relwidth=self.relwidth, relheight=self.relheight)
+        self.window.ticketrestau_checkbutton.place(relx=self.relx_left, rely=self.rely_bonus*7+self.relheight*4, relheight=self.relheight)
+        self.window.nottakeintoaccount_checkbutton.place(relx=self.relx_left, rely=self.rely_bonus*7+self.relheight*5, relheight=self.relheight)
+        self.window.button.place(relx=0.3, rely=self.rely_bonus*8+self.relheight*6, relwidth=0.4, relheight=self.relheight*1.2)
+
+    def button_func(self, event=None):
+        """ Command while pressing top level button """
+
+        self.window.button.place_forget()
+
+        # If no amount or date
+        if not self.window.amount_entry.get() or not self.window.date_entry.get():
+            self.window.unvalid_label.place(relx=0.1, rely=self.rely_bonus*8+self.relheight*6, relwidth=0.8, relheight=self.relheight*1.2)
+        else:            
+            # fill data.csv with this new expense
+            new_expense = dict()
+            new_expense["member"] = self.member
+            new_expense["description"] = self.window.description_entry.get()
+            new_expense["amount"] = float(self.window.amount_entry.get())
+            new_expense["date"] = self.window.date_entry.get()
+            new_expense["type"] = self.window.combobox.get()
+            new_expense["ticket_restau"] = self.window.ticketrestau_value.get()
+            new_expense["not_take_into_account"] = self.window.nottakeintoaccount_value.get()
+            self.master.master.data = self.master.master.data.append(new_expense, ignore_index=True)
+
+            # update widgets
+            self.nb_expenses = self.nb_expenses + 1
+            self.window.description_entry.delete(0, "end")
+            self.window.description_entry.insert(0, "Dépense {}".format(self.nb_expenses))
+            self.window.amount_entry.delete(0, "end")
+
+            # place "new expense added" label
+            self.window.expense_added_label.place(relx=0.1, rely=self.rely_bonus*8+self.relheight*6, relwidth=0.8, relheight=self.relheight*1.2)
+
+    def bind_func(self, event=None):
+        """ A function to make invisible "unvalid" label and make visible the button"""
+
+        self.window.unvalid_label.place_forget()
+        self.window.expense_added_label.place_forget()
+        self.window.button.place(relx=0.3, rely=self.rely_bonus*8+self.relheight*6, relwidth=0.4, relheight=self.relheight*1.2)
+    
+    def callback_amount_func(self, input):
+        """ Callback function """
+
+        c = Counter(input)
+
+        if c["."] > 1:
+            return False
+
+        if not all(i in ["0","1","2","3","4","5","6","7","8","9","."] for i in input):
+            return False
+
+        if len(input) > 6:
+            return False
+
+        else:
+            self.window.unvalid_label.place_forget()
+            self.window.expense_added_label.place_forget()
+            self.window.button.place(relx=0.3, rely=self.rely_bonus*8+self.relheight*6, relwidth=0.4, relheight=self.relheight*1.2)
+            return True  
 
 
 class CalculatePart(tk.Frame):
@@ -587,9 +658,9 @@ class CalculatePart(tk.Frame):
         self.config(bg=GREEN)
 
         self.start_label = tk.Label(self, text='Début :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
-        self.calendar_start_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr")
+        self.calendar_start_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr", state="readonly")
         self.end_label = tk.Label(self, text='Fin :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
-        self.calendar_end_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr")
+        self.calendar_end_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr", state="readonly")
         self.calculate_button = tk.Button(self, text="CALCULER", font=("Helvetica", GW_CALCULATE_BUTTON_FONT_SIZE, "bold"))
 
         self.start_label.place(relx=0, rely=0, relwidth=0.5, relheight=0.25)
@@ -639,14 +710,15 @@ class GroupWindow(tk.Toplevel):
         # Load data
         try:
             self.data = pd.read_csv(os.path.join(GROUP_PATH, "data.csv"))
-        except :
-            self.data = pd.DataFrame(columns=["member","description", "amount", "date", "type", "ticket_restau", "not_take_into_account"])
+        except:
+            try:
+                self.data = pd.DataFrame(columns=["member","description", "amount", "date", "type", "ticket_restau", "not_take_into_account"])
+            except:
+                self.data = pd.DataFrame(columns=["member","description", "amount", "date", "type", "ticket_restau", "not_take_into_account"],
+                                         parse_dates=["date"])
 
         # Create members widget list
         self.members_widget_list = []
-
-        # Load group data
-
     
         # Window customization 
         self.title("Groupe {}".format(GROUP_NAME))
