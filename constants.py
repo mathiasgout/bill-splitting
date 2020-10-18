@@ -30,12 +30,13 @@ GW_MEMBER_LABEL_FONT_SIZE = 16
 GW_POURCENT_LABEL_FONT_SIZE = 13
 GW_END_START_LABEL_FONT_SIZE = 13
 GW_CALCULATE_BUTTON_FONT_SIZE = 14
-GW_NEW_EXPENSE_BUTTON_FONT_SIZE = 14
+GW_RIGHT_FRAME_BUTTON_FONT_SIZE = 14
 
 
 # pop up window
 PUW_WIDTH, PUW_HEIGHT = 500, 70
 PUW_WIDTH_BIG, PUW_HEIGHT_BIG = 400, 250
+PUW_WIDTH_EDIT_EXPENSES, PUW_HEIGHT_EDIT_EXPENSES = 700, 300
 
 # pop up window sizes
 PUW_ENTRY_FONT_SIZE = 15
@@ -47,7 +48,7 @@ INVALID_CHAR = ("\\", " ", "/", ">", "<", ":", "|", "?", "*", "[", "]", "@", "!"
                 '"', "'", "{", "}", "~", "°", "`", "ç", "à", "-", "=", "+", ".", ";", ",", "§", "£", "€")
 
 # type expense
-TYPE_LIST = ["<AUTRE>", "COURSE"]
+TYPE_LIST = ["<AUTRE>", "COURSE", "VOITURE", "SOIN", "LOISIR", "RESTAURANT"]
 
 # color
 GREEN = "#D8EEED"

@@ -520,13 +520,16 @@ class MemberRow(tk.Frame):
             widget.button.config(bg=GREEN)
         self.button.config(bg="white")
 
-        # Display new expense button on the right frame
+        # Display new expense button + edit expenses on the right frame
         if member[0].lower() in ["a", "e", "i", "o", "u", "y"]:
             self.master.master.right_frame.new_expense_button.config(text="Nouvelle dépense d'{}".format(member))
+            self.master.master.right_frame.edit_expenses_button.config(text="Modifier les dépenses d'{}".format(member))
         else:
             self.master.master.right_frame.new_expense_button.config(text="Nouvelle dépense de {}".format(member))
+            self.master.master.right_frame.edit_expenses_button.config(text="Modifier les dépenses de {}".format(member))
 
         self.master.master.right_frame.new_expense_button.pack(fill="x")
+        self.master.master.right_frame.edit_expenses_button.pack(fill="x")
 
 
 class NewExpense(tk.Button):
@@ -535,7 +538,7 @@ class NewExpense(tk.Button):
     def __init__(self, master):
         tk.Button.__init__(self, master)
         self.master = master
-        self.config(font=("Helvetica", GW_NEW_EXPENSE_BUTTON_FONT_SIZE, "bold"))
+        self.config(font=("Helvetica", GW_RIGHT_FRAME_BUTTON_FONT_SIZE, "bold"))
         self.config(command=self.main_func)
     
     def main_func(self):
@@ -544,7 +547,7 @@ class NewExpense(tk.Button):
         self.member = re.split(r"\'|\s", self.cget("text"))[-1]
 
         # Create pop up window
-        self.window = PopUpWindow(self.master.master, "Nouvelle dépense de {}".format(self.member), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
+        self.window = PopUpWindow(self.master.master, "Nouvelle dépense : {}".format(self.member), PUW_WIDTH_BIG, PUW_HEIGHT_BIG)
 
         # Bind
         self.window.bind("<Return>", self.button_func)
@@ -648,6 +651,55 @@ class NewExpense(tk.Button):
             return True  
 
 
+class EditExpenses(tk.Button):
+    """ Edit expenses button on right frame """
+
+    def __init__(self, master):
+        tk.Button.__init__(self, master)
+        self.master = master
+        self.config(font=("Helvetica", GW_RIGHT_FRAME_BUTTON_FONT_SIZE, "bold"))
+        self.config(command=self.main_func)
+    
+    def main_func(self):
+        """ Create a pop up window to edit expense """
+
+        self.member = re.split(r"\'|\s", self.cget("text"))[-1]
+
+        # Create pop up window
+        self.window = PopUpWindow(self.master.master, "Dépenses : {}".format(self.member), PUW_WIDTH_EDIT_EXPENSES, PUW_HEIGHT_EDIT_EXPENSES)
+
+        # Create widgets
+        self.window.scrollbar = tk.Scrollbar(self.window, orient="vertical")
+        self.window.scrollbar.pack(side="right", fill="y")
+
+        self.window.canvas = tk.Canvas(self.window, yscrollcommand=self.window.scrollbar.set)
+        self.window.canvas.frame = tk.Frame(self.window.canvas, highlightbackground="black", highlightthickness=1)
+        self.window.canvas.frame.header_idx = tk.Label(self.window.canvas.frame, text="#")
+        self.window.canvas.frame.header_description = tk.Label(self.window.canvas.frame, text="Description")
+        self.window.canvas.frame.header_amount = tk.Label(self.window.canvas.frame, text="€")
+        self.window.canvas.frame.header_date = tk.Label(self.window.canvas.frame, text="Date")
+        self.window.canvas.frame.header_type = tk.Label(self.window.canvas.frame, text="Type")
+        self.window.canvas.frame.header_TR = tk.Label(self.window.canvas.frame, text="TR")
+        self.window.canvas.frame.header_NPPEC = tk.Label(self.window.canvas.frame, text="NPPEC")
+        self.window.canvas.frame.header_delete = tk.Label(self.window.canvas.frame, text="Delete")
+
+        # Config widgets
+        self.window.scrollbar.config(command=self.window.canvas.yview)
+
+        # Display widgets
+        self.window.scrollbar.pack(side="right", fill="y")
+        self.window.canvas.pack(fill="both", side="left", expand=True)
+        self.window.canvas.frame.place(relx=0, rely=0, relwidth=1, relheight=0.1)
+        self.window.canvas.frame.header_idx.place(relx=0, rely=0, relwidth=0.05, relheight=1)
+        self.window.canvas.frame.header_description.place(relx=0.05, rely=0, relwidth=0.3, relheight=1)
+        self.window.canvas.frame.header_amount.place(relx=0.35, rely=0, relwidth=0.1, relheight=1)
+        self.window.canvas.frame.header_date.place(relx=0.45, rely=0, relwidth=0.1, relheight=1)
+        self.window.canvas.frame.header_type.place(relx=0.55, rely=0, relwidth=0.15, relheight=1)
+        self.window.canvas.frame.header_TR.place(relx=0.7, rely=0, relwidth=0.1, relheight=1)
+        self.window.canvas.frame.header_NPPEC.place(relx=0.8, rely=0, relwidth=0.1, relheight=1)
+        self.window.canvas.frame.header_delete.place(relx=0.9, rely=0, relwidth=0.1, relheight=1)
+
+
 class CalculatePart(tk.Frame):
     """ Calculate Part at the bottom of the left frame """
 
@@ -681,6 +733,7 @@ class RightFrame(tk.Frame):
 
         # Widgets
         self.new_expense_button = NewExpense(self)
+        self.edit_expenses_button = EditExpenses(self)
 
     def hide_widget(self):
         """ Hide right frame widgets """
