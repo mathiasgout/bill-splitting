@@ -8,6 +8,7 @@ import datetime
 import pandas as pd
 import tkinter as tk
 from tkinter import ttk
+from pandastable import Table
 from tkcalendar import DateEntry
 from collections import Counter
 from constants import *
@@ -668,36 +669,9 @@ class EditExpenses(tk.Button):
         # Create pop up window
         self.window = PopUpWindow(self.master.master, "Dépenses : {}".format(self.member), PUW_WIDTH_EDIT_EXPENSES, PUW_HEIGHT_EDIT_EXPENSES)
 
-        # Create widgets
-        self.window.scrollbar = tk.Scrollbar(self.window, orient="vertical")
-        self.window.scrollbar.pack(side="right", fill="y")
 
-        self.window.canvas = tk.Canvas(self.window, yscrollcommand=self.window.scrollbar.set)
-        self.window.canvas.frame = tk.Frame(self.window.canvas, highlightbackground="black", highlightthickness=1)
-        self.window.canvas.frame.header_idx = tk.Label(self.window.canvas.frame, text="#")
-        self.window.canvas.frame.header_description = tk.Label(self.window.canvas.frame, text="Description")
-        self.window.canvas.frame.header_amount = tk.Label(self.window.canvas.frame, text="€")
-        self.window.canvas.frame.header_date = tk.Label(self.window.canvas.frame, text="Date")
-        self.window.canvas.frame.header_type = tk.Label(self.window.canvas.frame, text="Type")
-        self.window.canvas.frame.header_TR = tk.Label(self.window.canvas.frame, text="TR")
-        self.window.canvas.frame.header_NPPEC = tk.Label(self.window.canvas.frame, text="NPPEC")
-        self.window.canvas.frame.header_delete = tk.Label(self.window.canvas.frame, text="Delete")
-
-        # Config widgets
-        self.window.scrollbar.config(command=self.window.canvas.yview)
-
-        # Display widgets
-        self.window.scrollbar.pack(side="right", fill="y")
-        self.window.canvas.pack(fill="both", side="left", expand=True)
-        self.window.canvas.frame.place(relx=0, rely=0, relwidth=1, relheight=0.1)
-        self.window.canvas.frame.header_idx.place(relx=0, rely=0, relwidth=0.05, relheight=1)
-        self.window.canvas.frame.header_description.place(relx=0.05, rely=0, relwidth=0.3, relheight=1)
-        self.window.canvas.frame.header_amount.place(relx=0.35, rely=0, relwidth=0.1, relheight=1)
-        self.window.canvas.frame.header_date.place(relx=0.45, rely=0, relwidth=0.1, relheight=1)
-        self.window.canvas.frame.header_type.place(relx=0.55, rely=0, relwidth=0.15, relheight=1)
-        self.window.canvas.frame.header_TR.place(relx=0.7, rely=0, relwidth=0.1, relheight=1)
-        self.window.canvas.frame.header_NPPEC.place(relx=0.8, rely=0, relwidth=0.1, relheight=1)
-        self.window.canvas.frame.header_delete.place(relx=0.9, rely=0, relwidth=0.1, relheight=1)
+        self.window.table = Table(self.window, dataframe=self.master.master.data.loc[self.master.master.data.member==self.member,:].copy())
+        self.window.table.show()
 
 
 class CalculatePart(tk.Frame):
