@@ -661,16 +661,35 @@ class EditExpenses(tk.Button):
         # Create widgets
         self.window.scrollbar = tk.Scrollbar(self.window, orient="vertical")
         self.window.canvas = tk.Canvas(self.window, yscrollcommand=self.window.scrollbar.set)
-        self.window.canvas.header = EditExpensesHeaders(self.window.canvas, PUW_WIDTH_EDIT_EXPENSES, PUW_EDIT_EXPENSES_ROW_HEIGHT_HEADER)
+        self.window.scrollable_frame = tk.Frame(self.window.canvas)
+        self.create_table_row()
 
         # Config widgets
         self.window.scrollbar.config(command=self.window.canvas.yview)
+        self.window.scrollable_frame.bind("<Configure>", lambda e: self.window.canvas.configure(scrollregion=self.window.canvas.bbox("all")))
+        self.window.canvas.create_window((0, 0), window=self.window.scrollable_frame)
 
         # Display widgets
-        self.window.scrollbar.pack(side="right", fill="y")
-        self.window.canvas.pack(fill="both", side="left", expand=True)
-        self.window.canvas.header.pack()
+        self.window.scrollbar.place(x=PUW_WIDTH_EDIT_EXPENSES_CANVAS, y=0, height=PUW_HEIGHT_EDIT_EXPENSES, width=PUW_WIDTH_EDIT_EXPENSES_SCROLLBAR)
+        self.window.canvas.place(x=0, y=0, height=PUW_HEIGHT_EDIT_EXPENSES, width=PUW_WIDTH_EDIT_EXPENSES_CANVAS)
+    
+    def create_table_row(self):
+        """ Create the rows of the table """
 
+        self.data_member = self.master.master.data.loc[self.master.master.data.member == self.member, :].copy()
+        self.data_member.sort_values(by="date", axis=0, inplace=True)
+
+        # Destroy frame widgets
+        for widget in self.window.scrollable_frame.winfo_children():
+            widget.destroy()
+
+        header = EditExpensesHeaders(self.window.scrollable_frame, PUW_WIDTH_EDIT_EXPENSES_CANVAS, PUW_EDIT_EXPENSES_ROW_HEIGHT_HEADER)
+        header.grid(row=0, column=0)
+
+        for i in range(self.data_member.shape[0]):
+            row = EditExpensesRow(self.window.scrollable_frame, i, self.member, self.data_member, PUW_WIDTH_EDIT_EXPENSES_CANVAS, PUW_EDIT_EXPENSES_ROW_HEIGHT)
+            row.grid(row=i+1, column=0)
+    
 
 class EditExpensesHeaders(tk.Frame):
     """ Headers for the edit expenses window """
@@ -678,18 +697,25 @@ class EditExpensesHeaders(tk.Frame):
     def __init__(self, master, header_width, header_heigth):
         tk.Frame.__init__(self, master)
         self.master = master
-        self.width = header_width
+        self.width = header_width - 2
         self.height = header_heigth
-        self.config(width=self.width, height=self.height)
+        self.config(width=self.width, height=header_heigth)
 
         # Create widgets
-        self.idx = tk.Label(self, text="#", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", fg="gray91")
-        self.amount = tk.Label(self, text="Montant (€)", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", fg="gray91")
-        self.date = tk.Label(self, text="Date", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", fg="gray91")
-        self.type = tk.Label(self, text="Type", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", fg="gray91")
-        self.TR = tk.Label(self, text="T.R.", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", fg="gray91")
-        self.PPEC = tk.Label(self, text="P.P.E.C.", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", fg="gray91")
-        self.delete = tk.Label(self, text="Suppr.", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", fg="gray91")
+        self.idx = tk.Label(self, font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray63", 
+                            fg="gray91", highlightbackground="gray91", highlightthickness=2)
+        self.amount = tk.Label(self, text="Montant (€)", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", 
+                               fg="gray91", highlightbackground="gray91", highlightthickness=2)
+        self.date = tk.Label(self, text="Date", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", 
+                             fg="gray91", highlightbackground="gray91", highlightthickness=2)
+        self.type = tk.Label(self, text="Type", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", 
+                             fg="gray91", highlightbackground="gray91", highlightthickness=2)
+        self.TR = tk.Label(self, text="T.R.", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", 
+                           fg="gray91", highlightbackground="gray91", highlightthickness=2)
+        self.PEC = tk.Label(self, text="P.E.C.", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", 
+                             fg="gray91", highlightbackground="gray91", highlightthickness=2)
+        self.delete = tk.Label(self, text="Suppr.", font=("Helvetica", PUW_EDIT_EXPENSES_HEADER_FONT_SIZE, "bold"), bg="gray33", 
+                               fg="gray91", highlightbackground="gray91", highlightthickness=2)
 
         # Display widgets
         self.idx.place(relx=0, rely=0, relwidth=0.07, relheight=1)
@@ -697,10 +723,88 @@ class EditExpensesHeaders(tk.Frame):
         self.date.place(relx=0.28, rely=0, relwidth=0.21, relheight=1)
         self.type.place(relx=0.49, rely=0, relwidth=0.21, relheight=1)
         self.TR.place(relx=0.7, rely=0, relwidth=0.1, relheight=1)
-        self.PPEC.place(relx=0.8, rely=0, relwidth=0.1, relheight=1)
+        self.PEC.place(relx=0.8, rely=0, relwidth=0.1, relheight=1)
         self.delete.place(relx=0.9, rely=0, relwidth=0.1, relheight=1)
- 
+
+
+class EditExpensesRow(tk.Frame):
+    """ Row on edit expenses window """
+
+    def __init__(self, master, i, member, data_member, row_width, row_height):
+        tk.Frame.__init__(self, master)
+        self.master = master
+        self.i = i
+        self.member = member
+        self.width = row_width - 2
+        self.height = row_height
+        self.data_member = data_member
+        self.config(width=self.width, height=self.height)
+        
+        # Create widgets
+        self.idx = tk.Label(self, text="{}".format(self.i+1), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), bg="gray63", 
+                            highlightbackground="gray91", highlightthickness=1)
+
+        self.amount_cst = self.data_member.iloc[self.i, 1]
+        self.amount = tk.Label(self, text="{}".format(self.amount_cst), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), 
+                               bg="floral white", highlightbackground="dim gray", highlightthickness=1, anchor="sw")
+
+        self.date_cst = self.data_member.iloc[self.i, 2]
+        self.date = tk.Label(self, text="{}".format(self.date_cst), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), bg="floral white", 
+                             highlightbackground="dim gray", highlightthickness=1, anchor="sw")
+
+        self.type_cst = self.data_member.iloc[self.i, 3]
+        self.type = tk.Label(self, text="{}".format(self.type_cst), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), bg="floral white", 
+                             highlightbackground="dim gray", highlightthickness=1, anchor="sw")
+
+        self.TR_cst = self.data_member.iloc[self.i, 4]
+        self.TR = tk.Label(self, text=self.mapper_TR(self.TR_cst), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), bg="floral white", 
+                           highlightbackground="dim gray", highlightthickness=1, anchor="sw")
+
+        self.PEC_cst = self.data_member.iloc[self.i, 5]
+        self.PEC = tk.Label(self, text=self.mapper_PEC(self.PEC_cst), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), bg="floral white", 
+                            highlightbackground="dim gray", highlightthickness=1, anchor="sw")
+
+        self.delete = tk.Button(self, text="X", font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE + 2, "bold"), bg="floral white", 
+                                highlightbackground="dim gray", highlightthickness=1, command=self.button_func)
+
+        # Display widgets
+        self.idx.place(relx=0, rely=0, relwidth=0.07, relheight=1)
+        self.amount.place(relx=0.07, rely=0, relwidth=0.21, relheight=1)
+        self.date.place(relx=0.28, rely=0, relwidth=0.21, relheight=1)
+        self.type.place(relx=0.49, rely=0, relwidth=0.21, relheight=1)
+        self.TR.place(relx=0.7, rely=0, relwidth=0.1, relheight=1)
+        self.PEC.place(relx=0.8, rely=0, relwidth=0.1, relheight=1)
+        self.delete.place(relx=0.9, rely=0, relwidth=0.1, relheight=1)
+
+    @staticmethod
+    def mapper_TR(cell):
+        """ Return "Oui" if cell is True, return "Non" if cell is False"""
+
+        if cell:
+            return "Oui"
+        else:
+            return "Non"
+
+    @staticmethod
+    def mapper_PEC(cell):
+        """ Return "Non" if cell is True, return "Oui" if cell is False"""
+
+        if not cell:
+            return "Oui"
+        else:
+            return "Non"
     
+    def button_func(self):
+        """ Delete expense """
+
+        self.master.master.master.master.data.drop(self.master.master.master.master.data.loc[(self.master.master.master.master.data.member == self.member) & 
+                                                                                             (self.master.master.master.master.data.amount == self.amount_cst) &
+                                                                                             (self.master.master.master.master.data.date == self.date_cst) &
+                                                                                             (self.master.master.master.master.data.type == self.type_cst) &
+                                                                                             (self.master.master.master.master.data.ticket_restau == self.TR_cst) &
+                                                                                             (self.master.master.master.master.data.not_take_into_account == self.PEC_cst), :].index[0],
+                                                    axis=0, inplace=True)
+        self.master.master.master.master.right_frame.edit_expenses_button.create_table_row()
 
 
 class CalculatePart(tk.Frame):
