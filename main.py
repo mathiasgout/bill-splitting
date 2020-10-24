@@ -662,6 +662,7 @@ class EditExpenses(tk.Button):
         self.window.scrollbar = tk.Scrollbar(self.window, orient="vertical")
         self.window.canvas = tk.Canvas(self.window, yscrollcommand=self.window.scrollbar.set)
         self.window.scrollable_frame = tk.Frame(self.window.canvas)
+        self.window.header = EditExpensesHeaders(self.window, PUW_WIDTH_EDIT_EXPENSES_CANVAS, PUW_EDIT_EXPENSES_ROW_HEIGHT_HEADER)
         self.create_table_row()
 
         # Config widgets
@@ -670,8 +671,10 @@ class EditExpenses(tk.Button):
         self.window.canvas.create_window((0, 0), window=self.window.scrollable_frame)
 
         # Display widgets
-        self.window.scrollbar.place(x=PUW_WIDTH_EDIT_EXPENSES_CANVAS, y=0, height=PUW_HEIGHT_EDIT_EXPENSES, width=PUW_WIDTH_EDIT_EXPENSES_SCROLLBAR)
-        self.window.canvas.place(x=0, y=0, height=PUW_HEIGHT_EDIT_EXPENSES, width=PUW_WIDTH_EDIT_EXPENSES_CANVAS)
+        self.window.scrollbar.place(x=PUW_WIDTH_EDIT_EXPENSES_CANVAS, y=PUW_EDIT_EXPENSES_ROW_HEIGHT_HEADER, height=PUW_HEIGHT_EDIT_EXPENSES_SCROLLBAR, width=PUW_WIDTH_EDIT_EXPENSES_SCROLLBAR)
+        self.window.canvas.place(x=0, y=PUW_EDIT_EXPENSES_ROW_HEIGHT_HEADER, height=PUW_HEIGHT_EDIT_EXPENSES_SCROLLBAR, width=PUW_WIDTH_EDIT_EXPENSES_CANVAS)
+        self.window.header.grid(row=0, column=0)
+    
     
     def create_table_row(self):
         """ Create the rows of the table """
@@ -683,12 +686,9 @@ class EditExpenses(tk.Button):
         for widget in self.window.scrollable_frame.winfo_children():
             widget.destroy()
 
-        header = EditExpensesHeaders(self.window.scrollable_frame, PUW_WIDTH_EDIT_EXPENSES_CANVAS, PUW_EDIT_EXPENSES_ROW_HEIGHT_HEADER)
-        header.grid(row=0, column=0)
-
         for i in range(self.data_member.shape[0]):
             row = EditExpensesRow(self.window.scrollable_frame, i, self.member, self.data_member, PUW_WIDTH_EDIT_EXPENSES_CANVAS, PUW_EDIT_EXPENSES_ROW_HEIGHT)
-            row.grid(row=i+1, column=0)
+            row.grid(row=i, column=0)
     
 
 class EditExpensesHeaders(tk.Frame):
@@ -820,13 +820,39 @@ class CalculatePart(tk.Frame):
         self.calendar_start_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr", state="readonly")
         self.end_label = tk.Label(self, text='Fin :', anchor="sw", bg=GREEN, font=("Helvetica", GW_END_START_LABEL_FONT_SIZE))
         self.calendar_end_entry = DateEntry(self, date_pattern="dd/mm/y", locale="fr", state="readonly")
-        self.calculate_button = tk.Button(self, text="CALCULER", font=("Helvetica", GW_CALCULATE_BUTTON_FONT_SIZE, "bold"))
+        self.calculate_button = tk.Button(self, text="CALCULER", font=("Helvetica", GW_CALCULATE_BUTTON_FONT_SIZE, "bold"), command=self.button_func)
 
         self.start_label.place(relx=0, rely=0, relwidth=0.5, relheight=0.25)
         self.calendar_start_entry.place(relx=0.5, rely=0, relwidth=0.5, relheight=0.25)
         self.end_label.place(relx=0, rely=0.30, relwidth=0.5, relheight=0.25)
         self.calendar_end_entry.place(relx=0.5, rely=0.30, relwidth=0.5, relheight=0.25)
-        self.calculate_button.place(relx=0, rely=0.65, relwidth=1, relheight=0.35)      
+        self.calculate_button.place(relx=0, rely=0.65, relwidth=1, relheight=0.35)
+
+    def button_func(self):
+        """ Calculate bill split """
+
+        self.window = PopUpWindow(self.master.master, "Résultat", PUW_CALCULATE_WIDTH, PUW_CALCULATE_HEIGHT)
+        
+        data_useful = self.master.master.data.loc[(self.master.master.data.not_take_into_account == False) &
+                                                  (self.calendar_start_entry.get() <= self.master.master.data.date) &
+                                                  (self.calendar_end_entry.get() >= self.master.master.data.date)]
+        
+        total = data_useful.loc[data_useful.ticket_restau == False, "amount"].sum()
+        total += data_useful.loc[data_useful.ticket_restau == True, "amount"].sum()*0.4
+        
+        for i, member in enumerate(self.master.master.members_list):
+            
+            member_pourcent = float(self.master.master.members_widget_list[i].entry.get())/100
+            member_rows = data_useful.loc[data_useful.member == member, :]
+            total_tr = member_rows.loc[(member_rows.ticket_restau == True) & (member_rows.not_take_into_account == False), "amount"].sum()
+            total_normal = member_rows.loc[(member_rows.ticket_restau == False) & (member_rows.not_take_into_account == False), "amount"].sum()
+            member_expenses = total_normal + total_tr*0.4
+            member_participation = round(member_expenses - total*member_pourcent, 2)
+
+            label = tk.Label(self.window, text="Depenses {} : {}".format(member, member_expenses))
+            label2 = tk.Label(self.window, text="{} : {}".format(member, member_participation))
+            label.pack()
+            label2.pack()
         
 
 class RightFrame(tk.Frame):
