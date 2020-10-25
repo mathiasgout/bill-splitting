@@ -156,7 +156,7 @@ class RemoveGroup(tk.Button):
 
     def secondary_button_func(self, event=None):
         """ Remove a group """
-
+                
         # if combobox selected a group name
         if self.combobox.get():
             shutil.rmtree(os.path.join(GROUPS_PATH, self.combobox.get()))
@@ -505,7 +505,8 @@ class MemberRow(tk.Frame):
         
         self.button = tk.Button(self, font=("Helvetica", GW_MEMBER_LABEL_FONT_SIZE, "bold"), relief="flat", 
                                 anchor="w", bg=GREEN, highlightthickness=0, text=member, command=lambda m=member: self.main_func(m))
-        self.entry = tk.Entry(self)
+        self.entry_register = self.register(self.callback_amount_func)
+        self.entry = tk.Entry(self, validatecommand=(self.entry_register, '%P'), validate="key")
         self.pourcent_label = tk.Label(self, text="%", bg=GREEN, font=("Helvetica", GW_POURCENT_LABEL_FONT_SIZE))
 
         self.button.place(relx=0, rely=0, relwidth=0.75, relheight=1)
@@ -530,6 +531,18 @@ class MemberRow(tk.Frame):
 
         self.master.master.right_frame.new_expense_button.pack(fill="x")
         self.master.master.right_frame.edit_expenses_button.pack(fill="x")
+
+    def callback_amount_func(self, input):
+        """ Callback function """
+
+        if not all(i in ["0","1","2","3","4","5","6","7","8","9"] for i in input):
+            return False
+
+        if len(input) > 3:
+            return False
+
+        else:
+            return True  
 
 
 class NewExpense(tk.Button):
@@ -833,13 +846,33 @@ class CalculatePart(tk.Frame):
 
         self.window = PopUpWindow(self.master.master, "Résultat", PUW_CALCULATE_WIDTH, PUW_CALCULATE_HEIGHT)
         
-        data_useful = self.master.master.data.loc[(self.master.master.data.not_take_into_account == False) &
-                                                  (self.calendar_start_entry.get() <= self.master.master.data.date) &
-                                                  (self.calendar_end_entry.get() >= self.master.master.data.date)]
+        # Starting and ending date
+        starting_date = self.calendar_start_entry.get()
+        ending_date = self.calendar_end_entry.get()
         
+        # Extract only the useful data
+        data_useful = self.master.master.data.loc[(self.master.master.data.not_take_into_account == False) &
+                                                  (starting_date <= self.master.master.data.date) &
+                                                  (ending_date >= self.master.master.data.date)]
+        
+        # Calculate total expenses 
         total = data_useful.loc[data_useful.ticket_restau == False, "amount"].sum()
         total += data_useful.loc[data_useful.ticket_restau == True, "amount"].sum()*0.4
         
+        # Create widgets
+        self.window.period_label = tk.Label(self.window, text="Période :    {} - {}".format(starting_date, ending_date),
+                                            font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL, "bold"), anchor="w")
+        self.window.total_expenses = tk.Label(self.window, text="Dépenses totales :", font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL, "bold"), anchor="w")
+        self.window.results = tk.Label(self.window, text="Résultats :", font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL+2, "bold"), anchor="w")
+
+        # Display widgets
+        sep = 0.05
+        title_height = 0.05
+        other_height = 0.04
+        self.window.period_label.place(relx=0, rely=0, relwidth=1, relheight=title_height)
+        self.window.total_expenses.place(relx=0, rely=sep+title_height, relwidth=1, relheight=title_height)
+        self.window.results.place(relx=0, rely=2*sep+2*title_height+len(self.master.master.members_list)*other_height, relwidth=1, relheight=title_height)
+
         for i, member in enumerate(self.master.master.members_list):
             
             member_pourcent = float(self.master.master.members_widget_list[i].entry.get())/100
@@ -849,10 +882,21 @@ class CalculatePart(tk.Frame):
             member_expenses = total_normal + total_tr*0.4
             member_participation = round(member_expenses - total*member_pourcent, 2)
 
-            label = tk.Label(self.window, text="Depenses {} : {}".format(member, member_expenses))
-            label2 = tk.Label(self.window, text="{} : {}".format(member, member_participation))
-            label.pack()
-            label2.pack()
+            # Create widgets
+            expense = tk.Label(self.window, text="{} ({} %) :   {} €".format(member, round(member_pourcent*100,2), member_expenses), anchor="w")
+            if member_participation < 0:
+                result = tk.Label(self.window, text="{} doit rembourser {} €".format(member, -member_participation), anchor="w", fg="red",
+                                 font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL-2, "bold"))
+            elif member_participation > 0:
+                result = tk.Label(self.window, text="{} doit récupérer {} €".format(member, member_participation), anchor="w", fg="green",
+                                  font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL-2, "bold"))
+            else:
+                result = tk.Label(self.window, text="{} ne doit rien rembourser ni nécupérer ".format(member), anchor="w", 
+                                  font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL-2, "bold"))
+
+            # Display widgets
+            expense.place(relx=0.05, rely=sep+2*title_height+i*other_height, relwidth=1, relheight=other_height)
+            result.place(relx=0.05, rely=2*sep+3*title_height+len(self.master.master.members_list)*other_height+i*other_height, relwidth=1, relheight=other_height)
         
 
 class RightFrame(tk.Frame):
