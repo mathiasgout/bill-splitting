@@ -933,10 +933,10 @@ class GroupWindow(tk.Toplevel):
         try :
             with open(os.path.join(GROUP_PATH, "members.txt"), "r") as f:
                 self.members_list = json.loads(f.read())
-            
+        
         except:
             self.members_list = []
-        
+
         # Load data
         try:
             self.data = pd.read_csv(os.path.join(GROUP_PATH, "data.csv"), parse_dates=["date"])
