@@ -883,12 +883,12 @@ class CalculatePart(tk.Frame):
             member_participation = round(member_expenses - total*member_pourcent, 2)
 
             # Create widgets
-            expense = tk.Label(self.window, text="{} ({} %) :   {} €".format(member, round(member_pourcent*100,2), member_expenses), anchor="w")
+            expense = tk.Label(self.window, text="{} ({} %) :   {} €".format(member, round(member_pourcent*100,2), round(member_expenses, 2)), anchor="w")
             if member_participation < 0:
-                result = tk.Label(self.window, text="{} doit rembourser {} €".format(member, -member_participation), anchor="w", fg="red",
+                result = tk.Label(self.window, text="{} doit rembourser {} €".format(member, -round(member_participation,2)), anchor="w", fg="red",
                                  font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL-2, "bold"))
             elif member_participation > 0:
-                result = tk.Label(self.window, text="{} doit récupérer {} €".format(member, member_participation), anchor="w", fg="green",
+                result = tk.Label(self.window, text="{} doit récupérer {} €".format(member, round(member_participation,2)), anchor="w", fg="green",
                                   font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL-2, "bold"))
             else:
                 result = tk.Label(self.window, text="{} ne doit rien rembourser ni nécupérer ".format(member), anchor="w", 
