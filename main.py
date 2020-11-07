@@ -614,7 +614,7 @@ class NewExpense(tk.Button):
             new_expense = dict()
             new_expense["member"] = self.member
             new_expense["amount"] = float(self.window.amount_entry.get())
-            new_expense["date"] = self.window.date_entry.get()
+            new_expense["date"] = datetime.datetime.strptime(self.window.date_entry.get(), "%d/%m/%Y")
             new_expense["type"] = self.window.combobox.get()
             new_expense["ticket_restau"] = self.window.ticketrestau_value.get()
             new_expense["not_take_into_account"] = self.window.nottakeintoaccount_value.get()
@@ -847,20 +847,20 @@ class CalculatePart(tk.Frame):
         self.window = PopUpWindow(self.master.master, "Résultat", PUW_CALCULATE_WIDTH, PUW_CALCULATE_HEIGHT)
         
         # Starting and ending date
-        starting_date = self.calendar_start_entry.get()
-        ending_date = self.calendar_end_entry.get()
-        
+        starting_date = datetime.datetime.strptime(self.calendar_start_entry.get(), "%d/%m/%Y")
+        ending_date = datetime.datetime.strptime(self.calendar_end_entry.get(), "%d/%m/%Y")
+
         # Extract only the useful data
         data_useful = self.master.master.data.loc[(self.master.master.data.not_take_into_account == False) &
                                                   (starting_date <= self.master.master.data.date) &
                                                   (ending_date >= self.master.master.data.date)]
-        
+
         # Calculate total expenses 
         total = data_useful.loc[data_useful.ticket_restau == False, "amount"].sum()
         total += data_useful.loc[data_useful.ticket_restau == True, "amount"].sum()*0.4
         
         # Create widgets
-        self.window.period_label = tk.Label(self.window, text="Période :    {} - {}".format(starting_date, ending_date),
+        self.window.period_label = tk.Label(self.window, text="Période :    {} - {}".format(starting_date.strftime("%d/%m/%Y"), ending_date.strftime("%d/%m/%Y")),
                                             font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL, "bold"), anchor="w")
         self.window.total_expenses = tk.Label(self.window, text="Dépenses totales :", font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL, "bold"), anchor="w")
         self.window.results = tk.Label(self.window, text="Résultats :", font=("Helvetica", PUW_CALCULATE_PART_TITLE_LABEL+2, "bold"), anchor="w")
@@ -939,13 +939,13 @@ class GroupWindow(tk.Toplevel):
         
         # Load data
         try:
-            self.data = pd.read_csv(os.path.join(GROUP_PATH, "data.csv"))
+            self.data = pd.read_csv(os.path.join(GROUP_PATH, "data.csv"), parse_dates=["date"])
         except:
             try:
-                self.data = pd.DataFrame(columns=["member", "amount", "date", "type", "ticket_restau", "not_take_into_account"])
-            except:
                 self.data = pd.DataFrame(columns=["member", "amount", "date", "type", "ticket_restau", "not_take_into_account"],
                                          parse_dates=["date"])
+            except:
+                self.data = pd.DataFrame(columns=["member", "amount", "date", "type", "ticket_restau", "not_take_into_account"])
 
         # Create members widget list
         self.members_widget_list = []
