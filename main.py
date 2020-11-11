@@ -762,7 +762,7 @@ class EditExpensesRow(tk.Frame):
                                bg="floral white", highlightbackground="dim gray", highlightthickness=1, anchor="sw")
 
         self.date_cst = self.data_member.iloc[self.i, 2]
-        self.date = tk.Label(self, text="{}".format(self.date_cst), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), bg="floral white", 
+        self.date = tk.Label(self, text="{}".format(self.date_cst.strftime("%d/%m/%Y")), font=("Helvetica", PUW_EDIT_EXPENSES_ROW_FONT_SIZE, "bold"), bg="floral white", 
                              highlightbackground="dim gray", highlightthickness=1, anchor="sw")
 
         self.type_cst = self.data_member.iloc[self.i, 3]
@@ -939,7 +939,7 @@ class GroupWindow(tk.Toplevel):
 
         # Load data
         try:
-            self.data = pd.read_csv(os.path.join(GROUP_PATH, "data.csv"), parse_dates=["date"])
+            self.data = pd.read_csv(os.path.join(GROUP_PATH, "data.csv"), parse_dates=["date"], date_parser=lambda x: datetime.datetime.strptime(x, "%d/%m/%Y"))
         except:
             try:
                 self.data = pd.DataFrame(columns=["member", "amount", "date", "type", "ticket_restau", "not_take_into_account"],
@@ -978,7 +978,7 @@ class GroupWindow(tk.Toplevel):
             f.write(json.dumps(self.members_list))
 
         # save data as data.csv
-        self.data.to_csv(os.path.join(GROUP_PATH, "data.csv"), index=False)
+        self.data.to_csv(os.path.join(GROUP_PATH, "data.csv"), index=False, date_format="%d/%m/%Y")
         
         # close app
         self.master.master.destroy()
